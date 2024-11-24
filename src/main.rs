@@ -1,4 +1,5 @@
 use std::env;
+use std::iter;
 
 fn main() {
 
@@ -49,12 +50,36 @@ fn not(val: bool) -> bool {
     nand(val, val)
 }
 
+fn not16(val: &Vec<bool>) -> Vec<bool> { 
+    let mut res = Vec::new();
+    for bit in val {
+        res.push(not(*bit));
+    }
+    res
+}
+
 fn and(val1: bool, val2: bool) -> bool {
     not(nand(val1, val2))
 }
 
+fn and16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> { 
+    let mut res = Vec::new();
+    for (bit1, bit2) in iter::zip(val1, val2) {
+        res.push(and(*bit1, *bit2));
+    }
+    res
+}
+
 fn or(val1: bool, val2: bool) -> bool {
     nand(not(val1), not(val2))
+}
+
+fn or16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> { 
+    let mut res = Vec::new();
+    for (bit1, bit2) in iter::zip(val1, val2) {
+        res.push(or(*bit1, *bit2));
+    }
+    res
 }
 
 fn nor(val1: bool, val2: bool) -> bool {
@@ -63,6 +88,23 @@ fn nor(val1: bool, val2: bool) -> bool {
 
 fn xor(val1: bool, val2: bool) -> bool {
     and(or(val1, val2), nand(val1, val2))
+}
+
+fn mux(val1: bool, val2: bool, sel: bool) -> bool {
+    or(and(val1, not(sel)), and(val2, sel))    
+}
+
+fn mux16(val1: &Vec<bool>, val2: &Vec<bool>, sel: bool) -> Vec<bool> { 
+    let mut res = Vec::new();
+    for (bit1, bit2) in iter::zip(val1, val2) {
+        res.push(mux(*bit1, *bit2, sel));
+    }
+    res
+}
+
+fn dmux(val: bool, sel: bool) -> (bool, bool) {
+    (and(val, not(sel)), 
+     and(val, sel))
 }
 
 #[cfg(test)]
@@ -113,5 +155,56 @@ mod tests {
         assert_eq!(xor(false, true), true);
         assert_eq!(xor(true, false), true);
         assert_eq!(xor(true, true), false);
+    }
+
+    #[test]
+    fn test_mux_works() {
+        assert_eq!(mux(false, false, false), false);
+        assert_eq!(mux(false, true, false), false);
+        assert_eq!(mux(true, false, false), true);
+        assert_eq!(mux(true, true, false), true);
+        assert_eq!(mux(false, false, true), false);
+        assert_eq!(mux(false, true, true), true);
+        assert_eq!(mux(true, false, true), false);
+        assert_eq!(mux(true, true, true), true);
+    }
+
+    #[test]
+    fn test_dmux_works() {
+        assert_eq!(dmux(false, false), (false, false));
+        assert_eq!(dmux(false, true), (false, false));
+        assert_eq!(dmux(true, false), (true, false));
+        assert_eq!(dmux(true, true), (false, true));
+    }
+
+    #[test]
+    fn test_not16_works() {
+        let val = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let res = vec![true, false, true, false, false, false, true, false, true, true, true, false, false, true, false, false];
+        assert_eq!(not16(&val), res);
+    }
+
+    #[test]
+    fn test_and16_works() {
+        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let res =  vec![false, false, false, true, false, true, false, true, false, false, false, true, true, false, true, false];
+        assert_eq!(and16(&val1, &val2), res);
+    }
+
+    #[test]
+    fn test_or16_works() {
+        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let res =  vec![false, true, true, true, true, true, true, true, true, false, false, true, true, true, true, true];
+        assert_eq!(or16(&val1, &val2), res);
+    }
+
+    #[test]
+    fn test_mux16_works() {
+        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        assert_eq!(mux16(&val1, &val2, false), val1);
+        assert_eq!(mux16(&val1, &val2, true), val2);
     }
 }
