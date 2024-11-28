@@ -1,5 +1,6 @@
 use std::env;
 mod gates;
+mod adder; 
 
 fn main() {
 
