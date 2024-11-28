@@ -16,9 +16,9 @@ fn half_adder(bit1: bool, bit2: bool) -> (bool, bool) {
 /// Outputs: (sum, carry_out)
 /// Function: sum is LSB of bit1 + bit2 + carry, carry_out is MSB
 fn full_adder(bit1: bool, bit2: bool, carry: bool) -> (bool, bool) {
-    let (half_sum, half_carry_1) = half_adder(bit1, bit2);
-    let (full_sum, half_carry_2) = half_adder(half_sum, carry);
-    (full_sum, gates::xor(half_carry_1, half_carry_2))
+    let (half_sum, half_carr_y) = half_adder(bit1, bit2);
+    let (full_sum, half_carry) = half_adder(half_sum, carry);
+    (full_sum, gates::xor(half_carr_y, half_carry))
 }
 
 // carry-ripple adder
@@ -87,16 +87,21 @@ fn inc16(val: &Vec<bool>) -> Vec<bool> {
 /// 
 /// Overflow is neither detected nor handled.
 fn hack_alu(val1: &Vec<bool>, val2: &Vec<bool>, zx: bool, nx: bool, zy: bool, ny: bool, f: bool, no: bool) -> (Vec<bool>, bool, bool) {
+
     let zero = gates::bytes_to_boolvec(&[0,0]);
-    //let just_one = gates::bytes_to_boolvec(&[0,1]);
-    //let ones = gates::bytes_to_boolvec(&[0xFF, 0xFF]);
-    let x_1 = gates::mux16(&val1, &zero, zx);
-    let x_2 = gates::mux16(&x_1, &gates::not16(&x_1), nx);
-    let y_1 = gates::mux16(&val2, &zero, zy);
-    let y_2 = gates::mux16(&y_1, &gates::not16(&y_1), ny);
-    let out_1 = gates::mux16(&gates::and16(&x_2, &y_2), &add16(&x_2, &y_2), f);
-    let out_2 = gates::mux16(&out_1, &gates::not16(&out_1), no);
-    (out_2, false, false) // TODO implement
+    
+    let _x = gates::mux16(&val1, &zero, zx);
+    let x = gates::mux16(&_x, &gates::not16(&_x), nx);
+    
+    let _y = gates::mux16(&val2, &zero, zy);
+    let y = gates::mux16(&_y, &gates::not16(&_y), ny);
+    
+    let _out = gates::mux16(&gates::and16(&x, &y), &add16(&x, &y), f);
+    let out = gates::mux16(&_out, &gates::not16(&_out), no);
+
+    (out, false, false) // TODO implement ALU flags
+    // easiest way to do this might be to move from Vec<bool> as primary unit to [bool; 8]
+    // and then zr=not(or(or8way(out[:8]), or8way(out[8:15])))
 }
 
 #[cfg(test)]
