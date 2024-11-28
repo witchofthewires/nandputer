@@ -8,10 +8,10 @@ pub fn not(val: bool) -> bool {
     nand(val, val)
 }
 
-pub fn not16(val: &Vec<bool>) -> Vec<bool> { 
-    let mut res = Vec::new();
-    for bit in val {
-        res.push(not(*bit));
+pub fn not16(val: &[bool; 16]) -> [bool; 16] {
+    let mut res = [false; 16];
+    for i in 0..16 {
+        res[i] = not(val[i]);
     }
     res
 }
@@ -20,10 +20,10 @@ pub fn and(val1: bool, val2: bool) -> bool {
     not(nand(val1, val2))
 }
 
-pub fn and16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> { 
-    let mut res = Vec::new();
-    for (bit1, bit2) in iter::zip(val1, val2) {
-        res.push(and(*bit1, *bit2));
+pub fn and16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] { 
+    let mut res = [false; 16];
+    for i in 0..16 {
+        res[i] = and(val1[i], val2[i]);
     }
     res
 }
@@ -32,10 +32,10 @@ pub fn or(val1: bool, val2: bool) -> bool {
     nand(not(val1), not(val2))
 }
 
-pub fn or16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> { 
-    let mut res = Vec::new();
-    for (bit1, bit2) in iter::zip(val1, val2) {
-        res.push(or(*bit1, *bit2));
+pub fn or16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] { 
+    let mut res = [false; 16];
+    for i in 0..16 {
+        res[i] = or(val1[i], val2[i]);
     }
     res
 }
@@ -56,29 +56,29 @@ pub fn mux(val1: bool, val2: bool, sel: bool) -> bool {
     or(and(val1, not(sel)), and(val2, sel))    
 }
 
-pub fn mux16(val1: &Vec<bool>, val2: &Vec<bool>, sel: bool) -> Vec<bool> { 
-    let mut res = Vec::new();
-    for (bit1, bit2) in iter::zip(val1, val2) {
-        res.push(mux(*bit1, *bit2, sel));
+pub fn mux16(val1: &[bool; 16], val2: &[bool; 16], sel: bool) -> [bool; 16] { 
+    let mut res = [false; 16];
+    for i in 0..16 {
+        res[i] = mux(val1[i], val2[i], sel);
     }
     res
 }
 
-pub fn mux4way16(val1: &Vec<bool>, val2: &Vec<bool>, val3: &Vec<bool>, val4: &Vec<bool>, sel: (bool, bool)) -> Vec<bool> { 
+pub fn mux4way16(val1: &[bool; 16], val2: &[bool; 16], val3: &[bool; 16], val4: &[bool; 16], sel: (bool, bool)) -> [bool; 16] { 
     mux16(&mux16(val1, val3, sel.0), 
         &mux16(val2, val4, sel.0), 
         sel.1)
 }
 
-pub fn mux8way16(val1: &Vec<bool>, 
-            val2: &Vec<bool>, 
-            val3: &Vec<bool>, 
-            val4: &Vec<bool>, 
-            val5: &Vec<bool>, 
-            val6: &Vec<bool>, 
-            val7: &Vec<bool>, 
-            val8: &Vec<bool>, 
-            sel: (bool, bool, bool)) -> Vec<bool> { 
+pub fn mux8way16(val1: &[bool; 16], 
+            val2: &[bool; 16], 
+            val3: &[bool; 16], 
+            val4: &[bool; 16], 
+            val5: &[bool; 16], 
+            val6: &[bool; 16], 
+            val7: &[bool; 16], 
+            val8: &[bool; 16], 
+            sel: (bool, bool, bool)) -> [bool; 16] { 
     mux16(&mux4way16(val1, val2, val3, val4, (sel.1, sel.2)), 
         &mux4way16(val5, val6, val7, val8, (sel.1, sel.2)), 
         sel.0)
@@ -118,6 +118,21 @@ pub fn bytes_to_boolvec(bytes: &[u8]) -> Vec<bool> {
         }
     }
     boolvec
+}
+
+pub fn bytes_to_boollist(bytes: &[u8]) -> [bool; 16] {
+    let mut boollist = [false; 16];
+    let mut total = 0;
+    for byte in bytes {
+        for i in 0..8 {
+            let val = (byte >> (7-i)) & 1;
+            if val == 1 { boollist[15 - total] = true; }
+            else { boollist[15 - total] = false; }
+            total += 1;
+        }
+        if total == 16 { break } // cap at 16 bits for now
+    }
+    boollist
 }
 
 #[cfg(test)]
@@ -225,41 +240,41 @@ mod tests {
 
     #[test]
     fn test_not16_works() {
-        let val = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        let res = vec![true, false, true, false, false, false, true, false, true, true, true, false, false, true, false, false];
+        let val = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let res = [true, false, true, false, false, false, true, false, true, true, true, false, false, true, false, false];
         assert_eq!(not16(&val), res);
     }
 
     #[test]
     fn test_and16_works() {
-        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
-        let res =  vec![false, false, false, true, false, true, false, true, false, false, false, true, true, false, true, false];
+        let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = [false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let res =  [false, false, false, true, false, true, false, true, false, false, false, true, true, false, true, false];
         assert_eq!(and16(&val1, &val2), res);
     }
 
     #[test]
     fn test_or16_works() {
-        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
-        let res =  vec![false, true, true, true, true, true, true, true, true, false, false, true, true, true, true, true];
+        let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = [false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let res =  [false, true, true, true, true, true, true, true, true, false, false, true, true, true, true, true];
         assert_eq!(or16(&val1, &val2), res);
     }
 
     #[test]
     fn test_mux16_works() {
-        let val1 = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        let val2 = vec![false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 =[false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
         assert_eq!(mux16(&val1, &val2, false), val1);
         assert_eq!(mux16(&val1, &val2, true), val2);
     }
 
     #[test]
     fn test_mux4way16_works() {
-        let val1 = bytes_to_boolvec(&[0x5d, 0x1b]);
-        let val2 = bytes_to_boolvec(&[0x37, 0x9e]);
-        let val3 = bytes_to_boolvec(&[0x9f, 0x66]);
-        let val4 = bytes_to_boolvec(&[0x54, 0xd3]);
+        let val1 = bytes_to_boollist(&[0x5d, 0x1b]);
+        let val2 = bytes_to_boollist(&[0x37, 0x9e]);
+        let val3 = bytes_to_boollist(&[0x9f, 0x66]);
+        let val4 = bytes_to_boollist(&[0x54, 0xd3]);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, false)), val1);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, true)), val2);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (true, false)), val3);
@@ -268,14 +283,14 @@ mod tests {
 
     #[test]
     fn test_mux8way16_works() {
-        let val1 = bytes_to_boolvec(&[0x5d, 0x1b]);
-        let val2 = bytes_to_boolvec(&[0x37, 0x9e]);
-        let val3 = bytes_to_boolvec(&[0x9f, 0x66]);
-        let val4 = bytes_to_boolvec(&[0x54, 0xd3]);
-        let val5 = bytes_to_boolvec(&[0x12, 0x34]);
-        let val6 = bytes_to_boolvec(&[0x56, 0x78]);
-        let val7 = bytes_to_boolvec(&[0x90, 0xab]);
-        let val8 = bytes_to_boolvec(&[0xcd, 0xef]);
+        let val1 = bytes_to_boollist(&[0x5d, 0x1b]);
+        let val2 = bytes_to_boollist(&[0x37, 0x9e]);
+        let val3 = bytes_to_boollist(&[0x9f, 0x66]);
+        let val4 = bytes_to_boollist(&[0x54, 0xd3]);
+        let val5 = bytes_to_boollist(&[0x12, 0x34]);
+        let val6 = bytes_to_boollist(&[0x56, 0x78]);
+        let val7 = bytes_to_boollist(&[0x90, 0xab]);
+        let val8 = bytes_to_boollist(&[0xcd, 0xef]);
         assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, false, false)), val1);
         assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, false, true)), val2);
         assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, true, false)), val3);

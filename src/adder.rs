@@ -30,20 +30,13 @@ fn full_adder(bit1: bool, bit2: bool, carry: bool) -> (bool, bool) {
 /// 
 /// Integer 2’s complement addition.
 /// Overflow is neither detected nor handled.
-fn add16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> {
+fn add16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
     let mut res: [bool; 16] = [false; 16];
     let mut carry_bus: [bool; 17] = [false; 17]; // prevent bus overflow on final bit
-    let mut rev_val1 = val1.clone();
-    let mut rev_val2 = val2.clone();
-    rev_val1.reverse();
-    rev_val2.reverse();
-    let mut i = 0;
-    for (bit1, bit2) in iter::zip(rev_val1, rev_val2) {
-        (res[i], carry_bus[i+1]) = full_adder(bit1, bit2, carry_bus[i]);
-        i += 1;
+    for i in 0..16 {
+        (res[i], carry_bus[i+1]) = full_adder(val1[i], val2[i], carry_bus[i]);
     }
-    res.reverse();
-    Vec::from(res)
+    res
 }
 
 /// Inc16 - Increment value by 1
@@ -53,8 +46,8 @@ fn add16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> {
 /// 
 /// Integer 2’s complement addition.
 /// Overflow is neither detected nor handled.
-fn inc16(val: &Vec<bool>) -> Vec<bool> {
-    let one = gates::bytes_to_boolvec(&[0,1]);
+fn inc16(val: &[bool; 16]) -> [bool; 16] {
+    let one = gates::bytes_to_boollist(&[0,1]);
     add16(&val, &one)
 }
 
@@ -86,9 +79,9 @@ fn inc16(val: &Vec<bool>) -> Vec<bool> {
 /// }
 /// 
 /// Overflow is neither detected nor handled.
-fn hack_alu(val1: &Vec<bool>, val2: &Vec<bool>, zx: bool, nx: bool, zy: bool, ny: bool, f: bool, no: bool) -> (Vec<bool>, bool, bool) {
+fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], zx: bool, nx: bool, zy: bool, ny: bool, f: bool, no: bool) -> ([bool; 16], bool, bool) {
 
-    let zero = gates::bytes_to_boolvec(&[0,0]);
+    let zero = gates::bytes_to_boollist(&[0,0]);
     
     let _x = gates::mux16(&val1, &zero, zx);
     let x = gates::mux16(&_x, &gates::not16(&_x), nx);
@@ -106,7 +99,7 @@ fn hack_alu(val1: &Vec<bool>, val2: &Vec<bool>, zx: bool, nx: bool, zy: bool, ny
 
 #[cfg(test)]
 mod tests {
-    use gates::bytes_to_boolvec;
+    use gates::bytes_to_boollist;
 
     use super::*;
 
@@ -136,7 +129,7 @@ mod tests {
         let val2 = [0,13];
         let sum = [0,25];
 
-        assert_eq!(add16(&bytes_to_boolvec(&val1), &bytes_to_boolvec(&val2)), bytes_to_boolvec(&sum));
+        assert_eq!(add16(&bytes_to_boollist(&val1), &bytes_to_boollist(&val2)), bytes_to_boollist(&sum));
     }
 
     #[test]
@@ -144,15 +137,15 @@ mod tests {
         let val1 = [00,12];
         let val2 = [0,13];
 
-        assert_eq!(inc16(&bytes_to_boolvec(&val1)), bytes_to_boolvec(&val2));
+        assert_eq!(inc16(&bytes_to_boollist(&val1)), bytes_to_boollist(&val2));
     }
 
     #[test]
     fn test_hack_alu_works() {
-        let val1 = bytes_to_boolvec(&[00,12]);
-        let val2 = bytes_to_boolvec(&[00,13]);
-        let zero = bytes_to_boolvec(&[00,00]);
-        let one =  bytes_to_boolvec(&[00,01]);
+        let val1 = bytes_to_boollist(&[00,12]);
+        let val2 = bytes_to_boollist(&[00,13]);
+        let zero = bytes_to_boollist(&[00,00]);
+        let one =  bytes_to_boollist(&[00,1]);
         let neg_one = gates::not16(&zero);
 
         // 101010: 0
