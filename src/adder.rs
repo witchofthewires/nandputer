@@ -31,6 +31,11 @@ fn add16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> {
     Vec::from(res)
 }
 
+fn inc16(val: &Vec<bool>) -> Vec<bool> {
+    let one = gates::bytes_to_boolvec(&[1]);
+    add16(&val, &one)
+}
+
 #[cfg(test)]
 mod tests {
     use gates::bytes_to_boolvec;
@@ -64,5 +69,13 @@ mod tests {
         let sum = [0,25];
 
         assert_eq!(add16(&bytes_to_boolvec(&val1), &bytes_to_boolvec(&val2)), bytes_to_boolvec(&sum));
+    }
+
+    #[test]
+    fn test_inc16_works() {
+        let val1 = [00,12];
+        let val2 = [0,13];
+
+        assert_eq!(inc16(&bytes_to_boolvec(&val1)), bytes_to_boolvec(&val2));
     }
 }
