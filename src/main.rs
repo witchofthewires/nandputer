@@ -81,12 +81,11 @@ fn or16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> {
     }
     res
 }
-/* 
-fn or8way(val: &Vec<bool>) -> bool {
-    println!("{val} TODO IMPLEMENT");
-    false
+
+fn or8way(val1: bool, val2: bool, val3: bool, val4: bool, val5: bool, val6: bool, val7: bool, val8: bool) -> bool {
+    or(or(or(val1, val2), or(val3, val4)),or(or(val5, val6), or(val7, val8)))
 }
-*/
+
 fn nor(val1: bool, val2: bool) -> bool {
     not(or(val1, val2))
 }
@@ -276,17 +275,21 @@ mod tests {
         assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, true, false)), val7);
         assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, true, true)), val8);
     }
-/* 
+ 
     #[test]
     fn test_or8way_works() {
-        for i in 0..=255 {
-            let bytes: u8 = [i];
+        for byte in 0..=255 {
             let mut expected: bool = true;
-            if bytes[0] == 0: expected = false;
-            assert_eq!(or8way(bytes_to_boolvec(&bytes)), expected);
+            if (byte == 0) { expected = false; }
+            
+            let mut inputs: [bool; 8] = [false; 8];
+            for i in 0..8 {
+                inputs[i] = (((byte >> i) & 1) == 1);
+            }
+            assert_eq!(or8way(inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5], inputs[6], inputs[7]), expected);
         }
     }
-*/
+
     #[test]
     fn test_bytes_to_boolvec_works() {
         let val = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
