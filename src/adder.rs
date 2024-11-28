@@ -54,8 +54,49 @@ fn add16(val1: &Vec<bool>, val2: &Vec<bool>) -> Vec<bool> {
 /// Integer 2’s complement addition.
 /// Overflow is neither detected nor handled.
 fn inc16(val: &Vec<bool>) -> Vec<bool> {
-    let one = gates::bytes_to_boolvec(&[1]);
+    let one = gates::bytes_to_boolvec(&[0,1]);
     add16(&val, &one)
+}
+
+/// Hack_ALU - ALU as specified by nand2tetris
+/// Inputs {
+///            x[16], y[16]: Two 16-bit data inputs
+///            zx: Zero the x input
+///            nx: Negate the x input
+///            zy: Zero the y input
+///            ny: Negate the y input
+///            f:  Function code: 1 for Add, 0 for And
+///            no: Negate the out output
+/// }
+/// Outputs {
+///            out[16]: 16-bit output
+///            zr: True iff out=0
+///            ng: True iff out<0
+/// }
+/// Function { 
+///            if zx then x = 0, 16-bit zero constant
+///            if nx then x = !x, Bit-wise negation
+///            if zy then y = 0, 16-bit zero constant
+///            if ny then y = !y, Bit-wise negation
+///            if f then out = x + y, Integer 2's complement addition
+///            else out = x & y, Bit-wise And
+///            if no then out = !out, Bit-wise negation
+///            if out=0 then zr = 1 else zr = 0, 16-bit eq. comparison
+///            if out<0 then ng = 1 else ng = 0, 16-bit neg. comparison
+/// }
+/// 
+/// Overflow is neither detected nor handled.
+fn hack_alu(val1: &Vec<bool>, val2: &Vec<bool>, zx: bool, nx: bool, zy: bool, ny: bool, f: bool, no: bool) -> (Vec<bool>, bool, bool) {
+    let zero = gates::bytes_to_boolvec(&[0,0]);
+    //let just_one = gates::bytes_to_boolvec(&[0,1]);
+    //let ones = gates::bytes_to_boolvec(&[0xFF, 0xFF]);
+    let x_1 = gates::mux16(&val1, &zero, zx);
+    let x_2 = gates::mux16(&x_1, &gates::not16(&x_1), nx);
+    let y_1 = gates::mux16(&val2, &zero, zy);
+    let y_2 = gates::mux16(&y_1, &gates::not16(&y_1), ny);
+    let out_1 = gates::mux16(&gates::and16(&x_2, &y_2), &add16(&x_2, &y_2), f);
+    let out_2 = gates::mux16(&out_1, &gates::not16(&out_1), no);
+    (out_2, false, false) // TODO implement
 }
 
 #[cfg(test)]
@@ -99,5 +140,87 @@ mod tests {
         let val2 = [0,13];
 
         assert_eq!(inc16(&bytes_to_boolvec(&val1)), bytes_to_boolvec(&val2));
+    }
+
+    #[test]
+    fn test_hack_alu_works() {
+        let val1 = bytes_to_boolvec(&[00,12]);
+        let val2 = bytes_to_boolvec(&[00,13]);
+        let zero = bytes_to_boolvec(&[00,00]);
+        let one =  bytes_to_boolvec(&[00,01]);
+        let neg_one = gates::not16(&zero);
+
+        // 101010: 0
+        let (out, _, _) = hack_alu(&val1, &val2, true, false, true, false, true, false);
+        assert_eq!(&out, &zero);
+
+        // 111111: 1
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, true, true, true, true);
+        assert_eq!(&out, &one);
+
+        // 111010: -1
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, true, false, true, false);
+        assert_eq!(&out, &neg_one);
+
+        // 001100: x
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, true, true, false, false);
+        assert_eq!(&out, &val1);
+
+        // 110000: y
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, false, false, false, false);
+        assert_eq!(&out, &val2);
+
+        // 001101: !x
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, true, true, false, true);
+        assert_eq!(&out, &gates::not16(&val1));
+
+        // 110001: !y
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, false, false, false, true);
+        assert_eq!(&out, &gates::not16(&val2));
+
+        // 001111: -x
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, true, true, true, true);
+        assert_eq!(&out, &inc16(&gates::not16(&val1)));
+
+        // 110011: -y
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, false, false, true, true);
+        assert_eq!(&out, &inc16(&gates::not16(&val2)));
+
+        // 011111: x+1
+        let (out, _, _) = hack_alu(&val1, &val2, false, true, true, true, true, true);
+        assert_eq!(&out, &inc16(&val1));
+
+        // 110111: y+1
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, false, true, true, true);
+        assert_eq!(&out, &inc16(&val2));
+
+        // 001110: x-1
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, true, true, true, false);
+        assert_eq!(&out, &add16(&val1, &neg_one));
+
+        // 110010: y-1
+        let (out, _, _) = hack_alu(&val1, &val2, true, true, false, false, true, false);
+        assert_eq!(&out, &add16(&val2, &neg_one));
+
+        // 000010: x+y
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, false, false, true, false);
+        assert_eq!(&out, &add16(&val1, &val2));
+
+        // 010011: x-y
+        let (out, _, _) = hack_alu(&val1, &val2, false, true, false, false, true, true);
+        assert_eq!(&out, &add16(&val1, &inc16(&gates::not16(&val2))));
+
+        // 000111: y-x
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, false, true, true, true);
+        assert_eq!(&out, &add16(&val2, &inc16(&gates::not16(&val1))));
+        
+        // 000000: x&y
+        let (out, _, _) = hack_alu(&val1, &val2, false, false, false, false, false, false);
+        assert_eq!(&out, &gates::and16(&val1, &val2));
+
+        // 010101: x|y
+        let (out, _, _) = hack_alu(&val1, &val2, false, true, false, true, false, true);
+        assert_eq!(&out, &gates::or16(&val1, &val2));
+
     }
 }
