@@ -78,7 +78,7 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 }
 
 /// Hack_ALU - ALU as specified by nand2tetris
-/// Inputs {
+/// Inputs: &[bool; 16], &[bool; 16], &HackCtrl
 ///            x[16], y[16]: Two 16-bit data inputs
 ///            zx: Zero the x input
 ///            nx: Negate the x input
@@ -87,7 +87,7 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 ///            f:  Function code: 1 for Add, 0 for And
 ///            no: Negate the out output
 /// }
-/// Outputs {
+/// Outputs: HackOut
 ///            out[16]: 16-bit output
 ///            zr: True iff out=0
 ///            ng: True iff out<0
