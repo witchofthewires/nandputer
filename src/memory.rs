@@ -68,27 +68,24 @@ impl Register {
         Register { bits: [BitRegister::new(); 16] }
     }
 
-    fn from_bytes(bytes: &[u8]) -> Register {
+    fn write_bytes(&mut self, bytes: &[u8], load: bool) {
         let bits = gates::bytes_to_boollist(bytes);
-        Self::from_boollist(&bits)
+        self.write(&bits, load);
     }
 
-    fn from_boollist(boollist: &[bool]) -> Register {
-        let mut reg = Register::new();
-        dbg!(boollist, reg.bits);
+    fn write(&mut self, boollist: &[bool], load: bool) {
+        if !load { return }
         for i in 0..16 {
-            if boollist[i] { reg.bits[i].write(true, true); }
+            if boollist[i] { self.bits[i].write(true, true); }
         }
-        dbg!(boollist, reg.bits);
-        reg
     }
 
-    fn read_as_boollist(&self) -> [bool; 16] {
+    fn read(&self) -> [bool; 16] {
         self.bits.map(|b| b.read())
     }
 
     fn read_as_bytes(&self) -> [u8; 2] {
-        gates::boollist_to_bytes(&self.read_as_boollist())
+        gates::boollist_to_bytes(&self.read())
     }
 }
 
@@ -139,12 +136,17 @@ mod tests {
 
     #[test]
     fn test_register_works() {
-        let register = Register::new();
-        let bytes = gates::boollist_to_bytes(&register.read_as_boollist());
+        let mut register = Register::new();
+        let bytes = register.read_as_bytes();
         assert_eq!(bytes[0],0);
         assert_eq!(bytes[1],0);
         
-        let register = Register::from_bytes(&[0xde as u8, 0xad as u8]);
+        register.write_bytes(&[0xde as u8, 0xad as u8], false);
+        let bytes = register.read_as_bytes();
+        assert_eq!(bytes[0],0);
+        assert_eq!(bytes[1],0);
+        
+        register.write_bytes(&[0xde as u8, 0xad as u8], true);
         let bytes = register.read_as_bytes();
         assert_eq!(bytes[0],0xde);
         assert_eq!(bytes[1],0xad);
