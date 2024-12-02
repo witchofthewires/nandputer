@@ -4,6 +4,7 @@ use crate::{gates,adder};
 // like nand2tetris we will use the D Flip-Flop as the atomic unit of sequential logic
 // in physics DFFs are implemented via feedback between NAND gates
 // simulating that would be much more difficult at this stage, instead implement DFF in Rust
+#[derive(Copy, Clone, Debug)]
 struct DFF {
     bit: bool
 }
@@ -23,6 +24,7 @@ impl DFF {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 struct BitRegister {
     dff: DFF
 }
@@ -39,6 +41,68 @@ impl BitRegister {
 
     fn write(&mut self, val: bool, load: bool) {
         self.dff.cycle(gates::mux(self.read(), val, load));
+    }
+}
+
+// Chip name: RAMn // n and k are listed below
+// Inputs: in[16], address[k], load
+// Outputs: out[16]
+// Function: out(t)=RAM[address(t)](t)
+// If load(t-1) then
+// RAM[address(t-1)](t)=in(t-1)
+// Comment: "=" is a 16-bit operation.
+// The specific RAM chips needed for the Hack platform are:
+// Chip name n k
+// RAM8 8 3
+// RAM64 64 6
+// RAM512 512 9
+// RAM4K 4096 12
+// RAM16K 16384 14
+#[derive(Copy, Clone)]
+struct Register {
+    bits: [BitRegister; 16],
+}
+
+impl Register {
+    fn new() -> Register {
+        Register { bits: [BitRegister::new(); 16] }
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Register {
+        let bits = gates::bytes_to_boollist(bytes);
+        Self::from_boollist(&bits)
+    }
+
+    fn from_boollist(boollist: &[bool]) -> Register {
+        let mut reg = Register::new();
+        dbg!(boollist, reg.bits);
+        for i in 0..16 {
+            if boollist[i] { reg.bits[i].write(true, true); }
+        }
+        dbg!(boollist, reg.bits);
+        reg
+    }
+
+    fn read_as_boollist(&self) -> [bool; 16] {
+        self.bits.map(|b| b.read())
+    }
+
+    fn read_as_bytes(&self) -> [u8; 2] {
+        gates::boollist_to_bytes(&self.read_as_boollist())
+    }
+}
+
+struct RAM8 {
+    words: [Register; 8],
+}
+
+impl RAM8 {
+    fn new() -> RAM8 {
+        RAM8{ words: [Register::new();8] }
+    }
+
+    fn read_word(&self, addr: [bool; 3]) -> Register {
+        Register::new()
     }
 }
 
@@ -71,5 +135,18 @@ mod tests {
         bit.write(false, true);
         assert_eq!(bit.read(), false);
 
+    }
+
+    #[test]
+    fn test_register_works() {
+        let register = Register::new();
+        let bytes = gates::boollist_to_bytes(&register.read_as_boollist());
+        assert_eq!(bytes[0],0);
+        assert_eq!(bytes[1],0);
+        
+        let register = Register::from_bytes(&[0xde as u8, 0xad as u8]);
+        let bytes = register.read_as_bytes();
+        assert_eq!(bytes[0],0xde);
+        assert_eq!(bytes[1],0xad);
     }
 }
