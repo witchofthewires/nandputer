@@ -83,6 +83,15 @@ impl RAM8 {
     fn new() -> RAM8 {
         RAM8{ words: [Register::new();8] }
     }
+/* TODO - need to refactor gates to use something better than tuples, esp. here for dmux*/
+    fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+        let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
+        let mut res = [[false; 16]; 8];
+        for i in 0..8 {
+            res[i] = self.words[i].cycle(val, load_bits[i]);
+        }
+        gates::mux8way16(&res[0], &res[1], &res[2], &res[3], &res[4], &res[5], &res[6], &res[7], (addr[0], addr[1], addr[2]))
+    }
 }
 
 #[cfg(test)]
@@ -129,5 +138,73 @@ mod tests {
         assert_eq!(register.cycle(&zeros,false),input);
         assert_eq!(register.cycle(&zeros,true),input);
         assert_eq!(register.cycle(&zeros,false),zeros);
+    }
+
+    #[test]
+    fn test_ram8_works() {
+        let mut ram = RAM8::new();
+        let input = gates::bytes_to_boollist(&[0xde, 0xad]);
+        let zeros = gates::bytes_to_boollist(&[0,0]);
+
+        // all init to zero
+        assert_eq!(ram.cycle(&zeros, &[false,false,false], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,false,true], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,true,false], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,true,true], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,false], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,true], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,false], false), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,true], false), zeros);
+
+        // input given but load not set
+        assert_eq!(ram.cycle(&input, &[false,false,false], false), zeros);
+        assert_eq!(ram.cycle(&input, &[false,false,true], false), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,false], false), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,true], false), zeros);
+        assert_eq!(ram.cycle(&input, &[true,false,false], false), zeros);
+        assert_eq!(ram.cycle(&input, &[true,false,true], false), zeros);
+        assert_eq!(ram.cycle(&input, &[true,true,false], false), zeros);
+        assert_eq!(ram.cycle(&input, &[true,true,true], false), zeros);
+        
+        // input given, load set
+        assert_eq!(ram.cycle(&input, &[false,false,false], true), zeros);
+        assert_eq!(ram.cycle(&input, &[false,false,true], true), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,false], true), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,true], true), zeros);
+        assert_eq!(ram.cycle(&input, &[true,false,false], true), zeros);
+        assert_eq!(ram.cycle(&input, &[true,false,true], true), zeros);
+        assert_eq!(ram.cycle(&input, &[true,true,false], true), zeros);
+        assert_eq!(ram.cycle(&input, &[true,true,true], true), zeros);
+
+        // we now read input as output. zero all
+        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), input);
+        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), input);
+        assert_eq!(ram.cycle(&zeros, &[false,true,false], true), input);
+        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), input);
+        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), input);
+        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), input);
+        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), input);
+        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), input);
+        
+        // confirm all output zero
+        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), zeros);
+
+        // confirm only word[2] written
+        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), zeros);
+        assert_eq!(ram.cycle(&input, &[false,true,false], true), input);
+        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), zeros);
+        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), zeros);
+
     }
 }
