@@ -17,6 +17,17 @@ impl HackCtrl {
     }
 }
 
+struct HackOut {
+    out: [bool; 16],
+    zr: bool,
+    ng: bool,
+}
+
+impl HackOut {
+    fn new(out: [bool; 16], zr: bool, ng: bool) -> HackOut {
+        HackOut{out, zr, ng}
+    }
+}
 /// half_adder - Add two bits
 /// Inputs: bit1, bit2
 /// Outputs: (sum, carry)
@@ -94,7 +105,7 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 /// }
 /// 
 /// Overflow is neither detected nor handled.
-fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &HackCtrl) -> ([bool; 16], bool, bool) {
+fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &HackCtrl) -> HackOut {
 
     let zero = gates::bytes_to_boollist(&[0,0]);
     
@@ -111,7 +122,7 @@ fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &HackCtrl) -> ([bool; 16
     let zr_2 = gates::or8way(out[8], out[9], out[10], out[11], out[12], out[13], out[14], out[15]);
     let zr = gates::not(gates::or(zr_1, zr_2));
 
-    (out, zr, out[15])
+    HackOut::new(out, zr, out[15])
 }
 
 #[cfg(test)]
@@ -167,129 +178,129 @@ mod tests {
 
         // 101010: 0
         let ctrl = HackCtrl::new(true, false, true, false, true, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &zero);
-        assert_eq!(zr, true);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &zero);
+        assert_eq!(hackout.zr, true);
+        assert_eq!(hackout.ng, false);
 
         // 111111: 1
         let ctrl = HackCtrl::new(true, true, true, true, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &one);
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &one);
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 111010: -1
         let ctrl = HackCtrl::new(true, true, true, false, true, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &neg_one);
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &neg_one);
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 001100: x
         let ctrl = HackCtrl::new(false, false, true, true, false, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &val1);
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &val1);
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 110000: y
         let ctrl = HackCtrl::new(true, true, false, false, false, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &val2);
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &val2);
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 001101: !x
         let ctrl = HackCtrl::new(false, false, true, true, false, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &gates::not16(&val1));
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &gates::not16(&val1));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 110001: !y
         let ctrl = HackCtrl::new(true, true, false, false, false, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &gates::not16(&val2));
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &gates::not16(&val2));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 001111: -x
         let ctrl = HackCtrl::new(false, false, true, true, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &inc16(&gates::not16(&val1)));
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &inc16(&gates::not16(&val1)));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 110011: -y
         let ctrl = HackCtrl::new(true, true, false, false, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &inc16(&gates::not16(&val2)));
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &inc16(&gates::not16(&val2)));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 011111: x+1
         let ctrl = HackCtrl::new(false, true, true, true, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &inc16(&val1));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &inc16(&val1));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 110111: y+1
         let ctrl = HackCtrl::new(true, true, false, true, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &inc16(&val2));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &inc16(&val2));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 001110: x-1
         let ctrl = HackCtrl::new(false, false, true, true, true, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &add16(&val1, &neg_one));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &add16(&val1, &neg_one));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 110010: y-1
         let ctrl = HackCtrl::new(true, true, false, false, true, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &add16(&val2, &neg_one));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &add16(&val2, &neg_one));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 000010: x+y
         let ctrl = HackCtrl::new(false, false, false, false, true, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &add16(&val1, &val2));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &add16(&val1, &val2));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 010011: x-y
         let ctrl = HackCtrl::new( false, true, false, false, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &add16(&val1, &inc16(&gates::not16(&val2))));
-        assert_eq!(zr, false);
-        assert_eq!(ng, true);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &add16(&val1, &inc16(&gates::not16(&val2))));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, true);
 
         // 000111: y-x
         let ctrl = HackCtrl::new(false, false, false, true, true, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &add16(&val2, &inc16(&gates::not16(&val1))));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &add16(&val2, &inc16(&gates::not16(&val1))));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
         
         // 000000: x&y
         let ctrl = HackCtrl::new(false, false, false, false, false, false);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &gates::and16(&val1, &val2));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &gates::and16(&val1, &val2));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
         // 010101: x|y
         let ctrl = HackCtrl::new(false, true, false, true, false, true);
-        let (out, zr, ng) = hack_alu(&val1, &val2, &ctrl);
-        assert_eq!(&out, &gates::or16(&val1, &val2));
-        assert_eq!(zr, false);
-        assert_eq!(ng, false);
+        let hackout = hack_alu(&val1, &val2, &ctrl);
+        assert_eq!(&hackout.out, &gates::or16(&val1, &val2));
+        assert_eq!(hackout.zr, false);
+        assert_eq!(hackout.ng, false);
 
     }
 }
