@@ -19,8 +19,10 @@ impl DFF {
         self.bit
     }
 
-    fn cycle(&mut self, bit: bool) {
+    fn cycle(&mut self, bit: bool) -> bool {
+        let res = self.bit;
         self.bit = bit;
+        res
     }
 }
 
@@ -35,12 +37,8 @@ impl BitRegister {
         BitRegister{ dff: DFF::new() }
     }
 
-    fn read(&self) -> bool {
-        self.dff.read()
-    }
-
-    fn write(&mut self, val: bool, load: bool) {
-        self.dff.cycle(gates::mux(self.read(), val, load));
+    fn cycle(&mut self, val: bool, load: bool) -> bool {
+        self.dff.cycle(gates::mux(self.dff.read(), val, load))
     }
 }
 
@@ -68,24 +66,12 @@ impl Register {
         Register { bits: [BitRegister::new(); 16] }
     }
 
-    fn write_bytes(&mut self, bytes: &[u8], load: bool) {
-        let bits = gates::bytes_to_boollist(bytes);
-        self.write(&bits, load);
-    }
-
-    fn write(&mut self, boollist: &[bool], load: bool) {
-        if !load { return }
+    fn cycle(&mut self, val: &[bool], load: bool) -> [bool; 16] {
+        let mut res = [false; 16];
         for i in 0..16 {
-            if boollist[i] { self.bits[i].write(true, true); }
+            res[i] = self.bits[i].cycle(val[i], load);
         }
-    }
-
-    fn read(&self) -> [bool; 16] {
-        self.bits.map(|b| b.read())
-    }
-
-    fn read_as_bytes(&self) -> [u8; 2] {
-        gates::boollist_to_bytes(&self.read())
+        res
     }
 }
 
@@ -96,10 +82,6 @@ struct RAM8 {
 impl RAM8 {
     fn new() -> RAM8 {
         RAM8{ words: [Register::new();8] }
-    }
-
-    fn read_word(&self, addr: [bool; 3]) -> Register {
-        Register::new()
     }
 }
 
@@ -121,34 +103,31 @@ mod tests {
 
     #[test]
     fn test_bit_register_works() {
-        let mut bit = BitRegister::new();
-        assert_eq!(bit.read(), false);
-        bit.write(true, false);
-        assert_eq!(bit.read(), false);
-        bit.write(true, true);
-        assert_eq!(bit.read(), true);
-        bit.write(false, false);
-        assert_eq!(bit.read(), true);
-        bit.write(false, true);
-        assert_eq!(bit.read(), false);
-
+        let mut bit = BitRegister::new(); // t=0
+        assert_eq!(bit.cycle(false,false), false);     // t=1
+        assert_eq!(bit.cycle(true,false), false);      // t=2...
+        assert_eq!(bit.cycle(false,false), false);
+        assert_eq!(bit.cycle(true,true), false);
+        assert_eq!(bit.cycle(false,false), true);
+        assert_eq!(bit.cycle(false,false), true);
+        assert_eq!(bit.cycle(false,true), true);
+        assert_eq!(bit.cycle(false,false), false);
+        assert_eq!(bit.cycle(false,false), false);
     }
 
     #[test]
     fn test_register_works() {
         let mut register = Register::new();
-        let bytes = register.read_as_bytes();
-        assert_eq!(bytes[0],0);
-        assert_eq!(bytes[1],0);
-        
-        register.write_bytes(&[0xde as u8, 0xad as u8], false);
-        let bytes = register.read_as_bytes();
-        assert_eq!(bytes[0],0);
-        assert_eq!(bytes[1],0);
-        
-        register.write_bytes(&[0xde as u8, 0xad as u8], true);
-        let bytes = register.read_as_bytes();
-        assert_eq!(bytes[0],0xde);
-        assert_eq!(bytes[1],0xad);
+        let input = gates::bytes_to_boollist(&[0xde, 0xad]);
+        let zeros = gates::bytes_to_boollist(&[0,0]);
+
+        assert_eq!(register.cycle(&zeros,false),zeros);
+        assert_eq!(register.cycle(&zeros,false),zeros);
+        assert_eq!(register.cycle(&input,false),zeros);
+        assert_eq!(register.cycle(&input,true),zeros);
+        assert_eq!(register.cycle(&zeros,false),input);
+        assert_eq!(register.cycle(&zeros,false),input);
+        assert_eq!(register.cycle(&zeros,true),input);
+        assert_eq!(register.cycle(&zeros,false),zeros);
     }
 }
