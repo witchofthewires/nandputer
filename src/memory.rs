@@ -90,7 +90,7 @@ impl RAM8 {
         for i in 0..8 {
             res[i] = self.words[i].cycle(val, load_bits[i]);
         }
-        gates::mux8way16(&res[0], &res[1], &res[2], &res[3], &res[4], &res[5], &res[6], &res[7], (addr[0], addr[1], addr[2]))
+        gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
     }
 }
 

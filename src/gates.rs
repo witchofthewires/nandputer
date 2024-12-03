@@ -70,17 +70,9 @@ pub fn mux4way16(val1: &[bool; 16], val2: &[bool; 16], val3: &[bool; 16], val4: 
         sel.1)
 }
 
-pub fn mux8way16(val1: &[bool; 16], 
-            val2: &[bool; 16], 
-            val3: &[bool; 16], 
-            val4: &[bool; 16], 
-            val5: &[bool; 16], 
-            val6: &[bool; 16], 
-            val7: &[bool; 16], 
-            val8: &[bool; 16], 
-            sel: (bool, bool, bool)) -> [bool; 16] { 
-    mux16(&mux4way16(val1, val2, val3, val4, (sel.1, sel.2)), 
-        &mux4way16(val5, val6, val7, val8, (sel.1, sel.2)), 
+pub fn mux8way16(vals: &[[bool; 16]; 8], sel: (bool, bool, bool)) -> [bool; 16] { 
+    mux16(&mux4way16(&vals[0], &vals[1], &vals[2], &vals[3], (sel.1, sel.2)), 
+        &mux4way16(&vals[4], &vals[5], &vals[6], &vals[7], (sel.1, sel.2)), 
         sel.0)
 }
 
@@ -307,14 +299,15 @@ mod tests {
         let val6 = bytes_to_boollist(&[0x56, 0x78]);
         let val7 = bytes_to_boollist(&[0x90, 0xab]);
         let val8 = bytes_to_boollist(&[0xcd, 0xef]);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, false, false)), val1);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, false, true)), val2);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, true, false)), val3);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (false, true, true)), val4);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, false, false)), val5);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, false, true)), val6);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, true, false)), val7);
-        assert_eq!(mux8way16(&val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8, (true, true, true)), val8);
+        let vals = [val1, val2, val3, val4, val5, val6, val7, val8];
+        assert_eq!(mux8way16(&vals, (false, false, false)), val1);
+        assert_eq!(mux8way16(&vals, (false, false, true)), val2);
+        assert_eq!(mux8way16(&vals, (false, true, false)), val3);
+        assert_eq!(mux8way16(&vals, (false, true, true)), val4);
+        assert_eq!(mux8way16(&vals, (true, false, false)), val5);
+        assert_eq!(mux8way16(&vals, (true, false, true)), val6);
+        assert_eq!(mux8way16(&vals, (true, true, false)), val7);
+        assert_eq!(mux8way16(&vals, (true, true, true)), val8);
     }
  
     #[test]
