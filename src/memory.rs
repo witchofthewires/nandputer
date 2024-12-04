@@ -56,7 +56,7 @@ impl BitRegister {
 // RAM512 512 9
 // RAM4K 4096 12
 // RAM16K 16384 14
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct Register {
     bits: [BitRegister; 16],
 }
@@ -75,6 +75,7 @@ impl Register {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 struct RAM8 {
     words: [Register; 8],
 }
@@ -83,7 +84,7 @@ impl RAM8 {
     fn new() -> RAM8 {
         RAM8{ words: [Register::new();8] }
     }
-/* TODO - need to refactor gates to use something better than tuples, esp. here for dmux*/
+
     fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
         let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
         let mut res = [[false; 16]; 8];
@@ -93,6 +94,29 @@ impl RAM8 {
         gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+struct RAM64 {
+    ram8s: [RAM8; 8],
+}
+
+impl RAM64 {
+    fn new() -> RAM64 {
+        RAM64{ ram8s: [RAM8::new();8] }
+    }
+
+    fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+        let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
+        let mut res = [[false; 16]; 8];
+        for i in 0..8 {
+            res[i] = self.ram8s[i].cycle(val, addr, load_bits[i]);
+        }
+        gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
+    }
+}
+
+
+
 
 #[cfg(test)]
 mod tests {
