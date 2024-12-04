@@ -1,6 +1,6 @@
 use std::iter;
 
-use crate::gates;
+use crate::*;
 
 struct HackCtrl {
     zx: bool,
@@ -73,7 +73,7 @@ fn add16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
 /// Integer 2’s complement addition.
 /// Overflow is neither detected nor handled.
 fn inc16(val: &[bool; 16]) -> [bool; 16] {
-    let one = gates::bytes_to_boollist(&[0,1]);
+    let one = utils::bytes_to_boollist(&[0,1]);
     add16(&val, &one)
 }
 
@@ -107,7 +107,7 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 /// Overflow is neither detected nor handled.
 fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &HackCtrl) -> HackOut {
 
-    let zero = gates::bytes_to_boollist(&[0,0]);
+    let zero = utils::bytes_to_boollist(&[0,0]);
     
     let _x = gates::mux16(&val1, &zero, ctrl.zx);
     let x = gates::mux16(&_x, &gates::not16(&_x), ctrl.nx);
@@ -127,7 +127,7 @@ fn hack_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &HackCtrl) -> HackOut {
 
 #[cfg(test)]
 mod tests {
-    use gates::bytes_to_boollist;
+    use utils::bytes_to_boollist;
 
     use super::*;
 

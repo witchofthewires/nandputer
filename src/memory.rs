@@ -1,5 +1,5 @@
 use std::iter;
-use crate::{gates,adder};
+use crate::*;
 
 // like nand2tetris we will use the D Flip-Flop as the atomic unit of sequential logic
 // in physics DFFs are implemented via feedback between NAND gates
@@ -120,7 +120,7 @@ impl RAM64 {
 
 #[cfg(test)]
 mod tests {
-    use gates::bytes_to_boollist;
+    use utils::bytes_to_boollist;
 
     use super::*;
 
@@ -151,8 +151,8 @@ mod tests {
     #[test]
     fn test_register_works() {
         let mut register = Register::new();
-        let input = gates::bytes_to_boollist(&[0xde, 0xad]);
-        let zeros = gates::bytes_to_boollist(&[0,0]);
+        let input = utils::bytes_to_boollist(&[0xde, 0xad]);
+        let zeros = utils::bytes_to_boollist(&[0,0]);
 
         assert_eq!(register.cycle(&zeros,false),zeros);
         assert_eq!(register.cycle(&zeros,false),zeros);
@@ -167,8 +167,8 @@ mod tests {
     #[test]
     fn test_ram8_works() {
         let mut ram = RAM8::new();
-        let input = gates::bytes_to_boollist(&[0xde, 0xad]);
-        let zeros = gates::bytes_to_boollist(&[0,0]);
+        let input = utils::bytes_to_boollist(&[0xde, 0xad]);
+        let zeros = utils::bytes_to_boollist(&[0,0]);
 
         // all init to zero
         assert_eq!(ram.cycle(&zeros, &[false,false,false], false), zeros);

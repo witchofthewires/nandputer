@@ -1,4 +1,5 @@
 use std::iter;
+use crate::*;
 
 pub fn nand(val1: bool, val2: bool) -> bool {
     !(val1 & val2)
@@ -98,49 +99,6 @@ pub fn dmux8way(val: bool, sel1: bool, sel2: bool, sel3: bool) -> [bool; 8] {
     and(val, and(and(sel1, not(sel2)), sel3)), 
     and(val, and(and(sel1, sel2), not(sel3))), 
     and(val, and(and(sel1, sel2), sel3))] 
-}
-
-// TODO this should be factored out
-pub fn bytes_to_boolvec(bytes: &[u8]) -> Vec<bool> {
-    let mut boolvec = Vec::new();
-    for byte in bytes {
-        for i in 0..8 {
-            let val = (byte >> (7-i)) & 1;
-            if val == 1 { boolvec.push(true); }
-            else { boolvec.push(false); }
-        }
-    }
-    boolvec
-}
-
-
-// TODO these should be refactored into utils.rs
-pub fn bytes_to_boollist(bytes: &[u8]) -> [bool; 16] {
-    let mut boollist = [false; 16];
-    let mut total = 0;
-    for byte in bytes {
-        for i in 0..8 {
-            let val = (byte >> (7-i)) & 1;
-            if val == 1 { boollist[15 - total] = true; }
-            else { boollist[15 - total] = false; }
-            total += 1;
-        }
-        if total == 16 { break } // cap at 16 bits for now
-    }
-    boollist
-}
-
-pub fn boollist_to_bytes(boollist: &[bool]) -> [u8; 2] {
-    let base: u8 = 2;
-    let mut val1: u8 = 0;
-    let mut val2: u8 = 0;
-    for i in 0..8 {
-        if boollist[i] { val1 += base.pow(i.try_into().expect("Failed to parse first byte from boollist")); }
-    }
-    for i in 8..16 {
-        if boollist[i] { val2 += base.pow((i-8).try_into().expect("Failed to parse second byte from boollist")); }
-    }
-    [val2, val1] // little endian 
 }
 
 #[cfg(test)]
@@ -279,10 +237,10 @@ mod tests {
 
     #[test]
     fn test_mux4way16_works() {
-        let val1 = bytes_to_boollist(&[0x5d, 0x1b]);
-        let val2 = bytes_to_boollist(&[0x37, 0x9e]);
-        let val3 = bytes_to_boollist(&[0x9f, 0x66]);
-        let val4 = bytes_to_boollist(&[0x54, 0xd3]);
+        let val1 = utils::bytes_to_boollist(&[0x5d, 0x1b]);
+        let val2 = utils::bytes_to_boollist(&[0x37, 0x9e]);
+        let val3 = utils::bytes_to_boollist(&[0x9f, 0x66]);
+        let val4 = utils::bytes_to_boollist(&[0x54, 0xd3]);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, false)), val1);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, true)), val2);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (true, false)), val3);
@@ -291,14 +249,14 @@ mod tests {
 
     #[test]
     fn test_mux8way16_works() {
-        let val1 = bytes_to_boollist(&[0x5d, 0x1b]);
-        let val2 = bytes_to_boollist(&[0x37, 0x9e]);
-        let val3 = bytes_to_boollist(&[0x9f, 0x66]);
-        let val4 = bytes_to_boollist(&[0x54, 0xd3]);
-        let val5 = bytes_to_boollist(&[0x12, 0x34]);
-        let val6 = bytes_to_boollist(&[0x56, 0x78]);
-        let val7 = bytes_to_boollist(&[0x90, 0xab]);
-        let val8 = bytes_to_boollist(&[0xcd, 0xef]);
+        let val1 = utils::bytes_to_boollist(&[0x5d, 0x1b]);
+        let val2 = utils::bytes_to_boollist(&[0x37, 0x9e]);
+        let val3 = utils::bytes_to_boollist(&[0x9f, 0x66]);
+        let val4 = utils::bytes_to_boollist(&[0x54, 0xd3]);
+        let val5 = utils::bytes_to_boollist(&[0x12, 0x34]);
+        let val6 = utils::bytes_to_boollist(&[0x56, 0x78]);
+        let val7 = utils::bytes_to_boollist(&[0x90, 0xab]);
+        let val8 = utils::bytes_to_boollist(&[0xcd, 0xef]);
         let vals = [val1, val2, val3, val4, val5, val6, val7, val8];
         assert_eq!(mux8way16(&vals, (false, false, false)), val1);
         assert_eq!(mux8way16(&vals, (false, false, true)), val2);
@@ -322,28 +280,5 @@ mod tests {
             }
             assert_eq!(or8way(inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5], inputs[6], inputs[7]), expected);
         }
-    }
-
-    #[test]
-    fn test_bytes_to_boolvec_works() {
-        let val = vec![false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        let val_bytes = [0x5d, 0x1b];
-        assert_eq!(bytes_to_boolvec(&val_bytes), val);
-    }
-
-    #[test]
-    fn test_boollist_to_bytes_works() {
-        let mut val = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        val.reverse(); // little endian
-        let val_bytes = [0x5d, 0x1b];
-        assert_eq!(boollist_to_bytes(&val), val_bytes);
-    }
-
-    #[test]
-    fn test_bytes_to_boollist_works() {
-        let val_bytes = [0x5d, 0x1b];
-        let mut val = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
-        val.reverse(); // little endian
-        assert_eq!(bytes_to_boollist(&val_bytes), val);
     }
 }
