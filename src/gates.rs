@@ -103,6 +103,8 @@ pub fn dmux8way(val: bool, sel1: bool, sel2: bool, sel3: bool) -> [bool; 8] {
 
 #[cfg(test)]
 mod tests {
+    use utils::boollist_to_bytes;
+
     use super::*;
 
     #[test]
@@ -241,6 +243,7 @@ mod tests {
         let val2 = utils::bytes_to_boollist(&[0x37, 0x9e]);
         let val3 = utils::bytes_to_boollist(&[0x9f, 0x66]);
         let val4 = utils::bytes_to_boollist(&[0x54, 0xd3]);
+
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, false)), val1);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, true)), val2);
         assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (true, false)), val3);
@@ -258,14 +261,15 @@ mod tests {
         let val7 = utils::bytes_to_boollist(&[0x90, 0xab]);
         let val8 = utils::bytes_to_boollist(&[0xcd, 0xef]);
         let vals = [val1, val2, val3, val4, val5, val6, val7, val8];
-        assert_eq!(mux8way16(&vals, (false, false, false)), val1);
-        assert_eq!(mux8way16(&vals, (false, false, true)), val2);
-        assert_eq!(mux8way16(&vals, (false, true, false)), val3);
-        assert_eq!(mux8way16(&vals, (false, true, true)), val4);
-        assert_eq!(mux8way16(&vals, (true, false, false)), val5);
-        assert_eq!(mux8way16(&vals, (true, false, true)), val6);
-        assert_eq!(mux8way16(&vals, (true, true, false)), val7);
-        assert_eq!(mux8way16(&vals, (true, true, true)), val8);
+
+        assert_eq!(mux8way16(&vals, (false, false, false)), vals[0]);
+        assert_eq!(mux8way16(&vals, (false, false, true)), vals[1]);
+        assert_eq!(mux8way16(&vals, (false, true, false)), vals[2]);
+        assert_eq!(mux8way16(&vals, (false, true, true)), vals[3]);
+        assert_eq!(mux8way16(&vals, (true, false, false)), vals[4]);
+        assert_eq!(mux8way16(&vals, (true, false, true)), vals[5]);
+        assert_eq!(mux8way16(&vals, (true, true, false)), vals[6]);
+        assert_eq!(mux8way16(&vals, (true, true, true)), vals[7]);
     }
  
     #[test]

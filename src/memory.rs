@@ -86,7 +86,8 @@ impl Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for bit in self.bits { write!(f, "{}", bit)?; }
+        // need to reverse output to big-endian for human viewing
+        for bit in self.bits.into_iter().rev() { write!(f, "{}", bit)?; }
         Ok(())
     }
 }
