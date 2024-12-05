@@ -22,7 +22,7 @@ fn main() {
             let input = input.trim();
 
             match input {
-                "m" => println!("{:?}", mem),
+                "m" => println!("{}", mem),
                 _   => println!("Invalid input"),
             }
         }

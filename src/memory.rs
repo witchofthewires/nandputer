@@ -1,4 +1,4 @@
-use std::iter;
+use std::{iter,fmt};
 use crate::*;
 
 // like nand2tetris we will use the D Flip-Flop as the atomic unit of sequential logic
@@ -42,6 +42,15 @@ impl BitRegister {
     }
 }
 
+impl fmt::Display for BitRegister {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self.dff.read() {
+            true =>  write!(f, "1"),
+            false => write!(f, "0"),
+        }
+    }
+}
+
 // Chip name: RAMn // n and k are listed below
 // Inputs: in[16], address[k], load
 // Outputs: out[16]
@@ -75,6 +84,20 @@ impl Register {
     }
 }
 
+// TODO gotta be a more compact way
+impl fmt::Display for Register {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.bits[0])?;
+        write!(f, "{}", self.bits[1])?;
+        write!(f, "{}", self.bits[2])?;
+        write!(f, "{}", self.bits[3])?;
+        write!(f, "{}", self.bits[4])?;
+        write!(f, "{}", self.bits[5])?;
+        write!(f, "{}", self.bits[6])?;
+        write!(f, "{}", self.bits[7])
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct RAM8 {
     words: [Register; 8],
@@ -92,6 +115,20 @@ impl RAM8 {
             res[i] = self.words[i].cycle(val, load_bits[i]);
         }
         gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
+    }
+}
+
+// TODO again clean this up
+impl fmt::Display for RAM8 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "000: {}\n", self.words[0])?;
+        write!(f, "001: {}\n", self.words[0])?;
+        write!(f, "010: {}\n", self.words[0])?;
+        write!(f, "011: {}\n", self.words[0])?;
+        write!(f, "100: {}\n", self.words[0])?;
+        write!(f, "101: {}\n", self.words[0])?;
+        write!(f, "110: {}\n", self.words[0])?;
+        write!(f, "111: {}\n", self.words[0])
     }
 }
 
