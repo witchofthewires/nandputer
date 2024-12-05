@@ -103,12 +103,12 @@ impl RAM8 {
     }
 
     pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
-        let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
+        let load_bits = gates::dmux8way(load, addr[2], addr[1], addr[0]);
         let mut res = [[false; 16]; 8];
         for i in 0..8 {
             res[i] = self.words[i].cycle(val, load_bits[i]);
         }
-        gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
+        gates::mux8way16(&res, (addr[2], addr[1], addr[0]))
     }
 }
 

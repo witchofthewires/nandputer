@@ -21,15 +21,17 @@ fn main() {
             .expect("Failed to read line");
         let input = input.trim();
 
-        let addr: u8 = 3;
+        //let addr: u8 = 3;
         match input {
             "m" => println!("{}", mem),
             "w" => {
-                        val += 1;
-                        let in_bits = utils::bytes_to_boollist(&[0,val]);
-                        let addr_bits = utils::bytes_to_boollist(&[0,addr]);
-                        mem.cycle(&in_bits, &addr_bits, true);
-                        println!("Wrote {} to {}", val, addr)
+                        //val += 1;
+                        for i in 0..8 {
+                            let in_bits = utils::bytes_to_boollist(&[0,i]);
+                            let addr_bits = utils::bytes_to_boollist(&[0,i]);
+                            mem.cycle(&in_bits, &addr_bits, true);
+                            println!("Wrote {} to {}", i, i)
+                        }
             }
             _   => println!("Invalid input"),
         }
