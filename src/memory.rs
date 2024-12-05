@@ -84,17 +84,10 @@ impl Register {
     }
 }
 
-// TODO gotta be a more compact way
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.bits[0])?;
-        write!(f, "{}", self.bits[1])?;
-        write!(f, "{}", self.bits[2])?;
-        write!(f, "{}", self.bits[3])?;
-        write!(f, "{}", self.bits[4])?;
-        write!(f, "{}", self.bits[5])?;
-        write!(f, "{}", self.bits[6])?;
-        write!(f, "{}", self.bits[7])
+        for bit in self.bits { write!(f, "{}", bit)?; }
+        Ok(())
     }
 }
 
@@ -118,17 +111,10 @@ impl RAM8 {
     }
 }
 
-// TODO again clean this up
 impl fmt::Display for RAM8 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "000: {}\n", self.words[0])?;
-        write!(f, "001: {}\n", self.words[0])?;
-        write!(f, "010: {}\n", self.words[0])?;
-        write!(f, "011: {}\n", self.words[0])?;
-        write!(f, "100: {}\n", self.words[0])?;
-        write!(f, "101: {}\n", self.words[0])?;
-        write!(f, "110: {}\n", self.words[0])?;
-        write!(f, "111: {}\n", self.words[0])
+        for i in 0..8 { write!(f, "{}: {}\n", i, self.words[i])?; }
+        Ok(())
     }
 }
 
