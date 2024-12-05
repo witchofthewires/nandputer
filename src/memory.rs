@@ -120,27 +120,24 @@ impl fmt::Display for RAM8 {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct RAM64 {
+pub struct RAM64 {
     ram8s: [RAM8; 8],
 }
 
 impl RAM64 {
-    fn new() -> RAM64 {
+    pub fn new() -> RAM64 {
         RAM64{ ram8s: [RAM8::new();8] }
     }
 
-    fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+    pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
         let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
         let mut res = [[false; 16]; 8];
         for i in 0..8 {
-            res[i] = self.ram8s[i].cycle(val, addr, load_bits[i]);
+            res[i] = self.ram8s[i].cycle(val, &addr[2..], load_bits[i]);
         }
         gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
     }
 }
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -195,66 +192,52 @@ mod tests {
         let zeros = utils::bytes_to_boollist(&[0,0]);
 
         // all init to zero
-        assert_eq!(ram.cycle(&zeros, &[false,false,false], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,false,true], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,true,false], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,true,true], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,false], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,true], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,false], false), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,true], false), zeros);
+        for i in 0..8 { assert_eq!(ram.cycle(&zeros, &utils::gen_memaddr(i), false), zeros); }
 
         // input given but load not set
-        assert_eq!(ram.cycle(&input, &[false,false,false], false), zeros);
-        assert_eq!(ram.cycle(&input, &[false,false,true], false), zeros);
-        assert_eq!(ram.cycle(&input, &[false,true,false], false), zeros);
-        assert_eq!(ram.cycle(&input, &[false,true,true], false), zeros);
-        assert_eq!(ram.cycle(&input, &[true,false,false], false), zeros);
-        assert_eq!(ram.cycle(&input, &[true,false,true], false), zeros);
-        assert_eq!(ram.cycle(&input, &[true,true,false], false), zeros);
-        assert_eq!(ram.cycle(&input, &[true,true,true], false), zeros);
+        for i in 0..8 { assert_eq!(ram.cycle(&input, &utils::gen_memaddr(i), false), zeros); }
         
         // input given, load set
-        assert_eq!(ram.cycle(&input, &[false,false,false], true), zeros);
-        assert_eq!(ram.cycle(&input, &[false,false,true], true), zeros);
-        assert_eq!(ram.cycle(&input, &[false,true,false], true), zeros);
-        assert_eq!(ram.cycle(&input, &[false,true,true], true), zeros);
-        assert_eq!(ram.cycle(&input, &[true,false,false], true), zeros);
-        assert_eq!(ram.cycle(&input, &[true,false,true], true), zeros);
-        assert_eq!(ram.cycle(&input, &[true,true,false], true), zeros);
-        assert_eq!(ram.cycle(&input, &[true,true,true], true), zeros);
+        for i in 0..8 { assert_eq!(ram.cycle(&input, &utils::gen_memaddr(i), true), zeros); }
 
         // we now read input as output. zero all
-        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), input);
-        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), input);
-        assert_eq!(ram.cycle(&zeros, &[false,true,false], true), input);
-        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), input);
-        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), input);
-        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), input);
-        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), input);
-        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), input);
+        for i in 0..8 { assert_eq!(ram.cycle(&zeros, &utils::gen_memaddr(i), true), input); }
         
         // confirm all output zero
-        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), zeros);
+        for i in 0..8 { assert_eq!(ram.cycle(&zeros, &utils::gen_memaddr(i), true), zeros); }
         assert_eq!(ram.cycle(&input, &[false,true,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), zeros);
 
         // confirm only word[2] written
-        assert_eq!(ram.cycle(&zeros, &[false,false,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[false,false,true], true), zeros);
-        assert_eq!(ram.cycle(&input, &[false,true,false], true), input);
-        let mut three = utils::bytes_to_boollist(&[0,3]);
-        three.reverse();
-        assert_eq!(ram.cycle(&zeros, &three, true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,false,true], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,false], true), zeros);
-        assert_eq!(ram.cycle(&zeros, &[true,true,true], true), zeros);
+        for i in 0..8 { 
+            if i == 2 { assert_eq!(ram.cycle(&zeros, &utils::gen_memaddr(i), true), input); }
+            else { assert_eq!(ram.cycle(&zeros, &utils::gen_memaddr(i), true), zeros); }
+        }
+    }
 
+    #[test]
+    fn test_ram64_works() {
+        let mut ram = RAM64::new();
+        let input = utils::bytes_to_boollist(&[0xde, 0xad]);
+        let zeros = utils::bytes_to_boollist(&[0,0]);
+        let addr = 7;
+        let mut addr_bits = utils::bytes_to_boollist(&[0,addr]);
+        addr_bits.reverse();
+
+        for i in 0..64 {
+            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        ram.cycle(&input, &addr_bits, true);
+        for i in 0..64 {
+            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
+            if i == addr.into() { assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&input)); }
+            else { assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros)); }
+        }
+        ram.cycle(&zeros, &addr_bits, true);
+        for i in 0..64 {
+            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
+            let reading = ram.cycle(&input, &addr_bits, false);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
     }
 }

@@ -26,6 +26,14 @@ pub fn boollist_to_bytes(boollist: &[bool]) -> [u8; 2] {
     [val2, val1] // little endian 
 }
 
+pub fn gen_memaddr(val: u16) -> [bool; 16] {
+    let byte1: u8 = (val & 0xFF) as u8;
+    let byte2: u8 = ((val >> 8) & 0xFF) as u8;
+    let mut addr_bits = bytes_to_boollist(&[byte2,byte1]);
+    //addr_bits.reverse();
+    addr_bits
+}
+
 // TODO this should be factored out
 pub fn bytes_to_boolvec(bytes: &[u8]) -> Vec<bool> {
     let mut boolvec = Vec::new();
@@ -64,5 +72,12 @@ mod tests {
         let mut val = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
         val.reverse(); // little endian
         assert_eq!(bytes_to_boollist(&val_bytes), val);
+    }
+
+    #[test]
+    fn test_gen_memaddr_works() {
+        let mut output = [false; 16];
+        output[10] = true;
+        assert_eq!(gen_memaddr(1024), output);
     }
 }
