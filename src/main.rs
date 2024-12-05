@@ -1,4 +1,5 @@
-use std::env;
+use std::{env, io};
+use std::io::Write;
 mod gates;
 mod adder; 
 mod memory;
@@ -7,40 +8,23 @@ mod utils;
 fn main() {
 
     let args: Vec<String> = env::args().collect();
-    let val1 = &args[1];
-    let val2 = &args[2];
-    let func = &args[3];
+    let mem = memory::RAM8::new();
 
-    let val1 = match &val1[..] {
-        "0" => false,
-        "1" => true,
-        _   => {
-            println!("Invalid arg1");
-            return();
+    loop {
+        loop {
+
+            print!("nandputer> ");
+            io::stdout().flush().unwrap();
+            let mut input = String::new();
+            io::stdin()
+                .read_line(&mut input)
+                .expect("Failed to read line");
+            let input = input.trim();
+
+            match input {
+                "m" => println!("{:?}", mem),
+                _   => println!("Invalid input"),
+            }
         }
-    };
-
-    let val2 = match &val2[..] {
-        "0" => false,
-        "1" => true,
-        _   => {
-            println!("Invalid arg2");
-            return();
-        }
-    };
-
-    let result = match &func[..] {
-        "nand" => gates::nand(val1, val2),
-        "not"  => gates::not(val1),
-        "and"  => gates::and(val1, val2),
-        "or"   => gates::or(val1, val2),
-        "nor"  => gates::nor(val1, val2),
-        "xor"  => gates::xor(val1, val2),
-        _      => {
-            println!("Invalid func");
-            return();
-        }
-    };
-
-    println!("{} {} {} = {}", val1, func, val2, result);
+    }
 }

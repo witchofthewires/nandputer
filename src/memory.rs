@@ -76,16 +76,16 @@ impl Register {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct RAM8 {
+pub struct RAM8 {
     words: [Register; 8],
 }
 
 impl RAM8 {
-    fn new() -> RAM8 {
+    pub fn new() -> RAM8 {
         RAM8{ words: [Register::new();8] }
     }
 
-    fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+    pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
         let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
         let mut res = [[false; 16]; 8];
         for i in 0..8 {
@@ -224,7 +224,9 @@ mod tests {
         assert_eq!(ram.cycle(&zeros, &[false,false,false], true), zeros);
         assert_eq!(ram.cycle(&zeros, &[false,false,true], true), zeros);
         assert_eq!(ram.cycle(&input, &[false,true,false], true), input);
-        assert_eq!(ram.cycle(&zeros, &[false,true,true], true), zeros);
+        let mut three = utils::bytes_to_boollist(&[0,3]);
+        three.reverse();
+        assert_eq!(ram.cycle(&zeros, &three, true), zeros);
         assert_eq!(ram.cycle(&zeros, &[true,false,false], true), zeros);
         assert_eq!(ram.cycle(&zeros, &[true,false,true], true), zeros);
         assert_eq!(ram.cycle(&zeros, &[true,true,false], true), zeros);
