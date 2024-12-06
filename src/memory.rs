@@ -130,12 +130,12 @@ impl RAM64 {
     }
 
     pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
-        let load_bits = gates::dmux8way(load, addr[0], addr[1], addr[2]);
+        let load_bits = gates::dmux8way(load, addr[5], addr[4], addr[3]);
         let mut res = [[false; 16]; 8];
         for i in 0..8 {
-            res[i] = self.ram8s[i].cycle(val, &addr[2..], load_bits[i]);
+            res[i] = self.ram8s[i].cycle(val, &addr, load_bits[i]);
         }
-        gates::mux8way16(&res, (addr[0], addr[1], addr[2]))
+        gates::mux8way16(&res, (addr[5], addr[4], addr[3]))
     }
 }
 
@@ -224,9 +224,26 @@ mod tests {
         addr_bits.reverse();
 
         for i in 0..64 {
-            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i]), &utils::gen_memaddr(i.into()), false);
+            dbg!(i);
             assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
         }
+        for i in 0..64 {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i]), &utils::gen_memaddr(i.into()), true);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..64 {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(i), true);
+            dbg!(i);
+            assert_eq!(reading, utils::bytes_to_boollist(&[0,i as u8]));
+        }
+        for i in 0..64 {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(i), false);
+            dbg!(i);
+            assert_eq!(reading, zeros);
+        }
+        /* 
         ram.cycle(&input, &addr_bits, true);
         for i in 0..64 {
             let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
@@ -238,6 +255,6 @@ mod tests {
             let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
             let reading = ram.cycle(&input, &addr_bits, false);
             assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
-        }
+        }*/
     }
 }
