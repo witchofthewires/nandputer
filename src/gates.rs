@@ -65,15 +65,15 @@ pub fn mux16(val1: &[bool; 16], val2: &[bool; 16], sel: bool) -> [bool; 16] {
     res
 }
 
-pub fn mux4way16(val1: &[bool; 16], val2: &[bool; 16], val3: &[bool; 16], val4: &[bool; 16], sel: (bool, bool)) -> [bool; 16] { 
-    mux16(&mux16(val1, val3, sel.0), 
-        &mux16(val2, val4, sel.0), 
-        sel.1)
+pub fn mux4way16(vals: &[[bool; 16]; 4], sel: (bool, bool)) -> [bool; 16] { 
+    mux16(&mux16(&vals[0], &vals[1], sel.1), 
+        &mux16(&vals[2], &vals[3], sel.1), 
+        sel.0)
 }
 
 pub fn mux8way16(vals: &[[bool; 16]; 8], sel: (bool, bool, bool)) -> [bool; 16] { 
-    mux16(&mux4way16(&vals[0], &vals[1], &vals[2], &vals[3], (sel.1, sel.2)), 
-        &mux4way16(&vals[4], &vals[5], &vals[6], &vals[7], (sel.1, sel.2)), 
+    mux16(&mux4way16(&[vals[0], vals[1], vals[2], vals[3]], (sel.1, sel.2)), 
+        &mux4way16(&[vals[4], vals[5], vals[6], vals[7]], (sel.1, sel.2)), 
         sel.0)
 }
 
@@ -82,11 +82,11 @@ pub fn dmux(val: bool, sel: bool) -> (bool, bool) {
     and(val, sel))
 }
 
-pub fn dmux4way(val: bool, sel1: bool, sel2: bool) -> (bool, bool, bool, bool) {
-    (and(val, and(not(sel1), not(sel2))), 
+pub fn dmux4way(val: bool, sel1: bool, sel2: bool) -> [bool; 4] {
+    [and(val, and(not(sel1), not(sel2))), 
     and(val, and(not(sel1), sel2)),
     and(val, and(sel1, not(sel2))),
-    and(val, and(sel1, sel2)))
+    and(val, and(sel1, sel2))]
 
 }
 
@@ -175,14 +175,14 @@ mod tests {
 
     #[test]
     fn test_dmux4way_works() {
-        assert_eq!(dmux4way(false, false, false), (false, false, false, false));
-        assert_eq!(dmux4way(false, false, true), (false, false, false, false));
-        assert_eq!(dmux4way(false, true, false), (false, false, false, false));
-        assert_eq!(dmux4way(false, true, true), (false, false, false, false));
-        assert_eq!(dmux4way(true, false, false), (true, false, false, false));
-        assert_eq!(dmux4way(true, false, true), (false, true, false, false));
-        assert_eq!(dmux4way(true, true, false), (false, false, true, false));
-        assert_eq!(dmux4way(true, true, true), (false, false, false, true));
+        assert_eq!(dmux4way(false, false, false), [false, false, false, false]);
+        assert_eq!(dmux4way(false, false, true), [false, false, false, false]);
+        assert_eq!(dmux4way(false, true, false), [false, false, false, false]);
+        assert_eq!(dmux4way(false, true, true), [false, false, false, false]);
+        assert_eq!(dmux4way(true, false, false), [true, false, false, false]);
+        assert_eq!(dmux4way(true, false, true), [false, true, false, false]);
+        assert_eq!(dmux4way(true, true, false), [false, false, true, false]);
+        assert_eq!(dmux4way(true, true, true), [false, false, false, true]);
     }
 
     #[test]
@@ -244,10 +244,10 @@ mod tests {
         let val3 = utils::bytes_to_boollist(&[0x9f, 0x66]);
         let val4 = utils::bytes_to_boollist(&[0x54, 0xd3]);
 
-        assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, false)), val1);
-        assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (false, true)), val2);
-        assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (true, false)), val3);
-        assert_eq!(mux4way16(&val1, &val2, &val3, &val4, (true, true)), val4);
+        assert_eq!(mux4way16(&[val1, val2, val3, val4], (false, false)), val1);
+        assert_eq!(mux4way16(&[val1, val2, val3, val4], (false, true)), val2);
+        assert_eq!(mux4way16(&[val1, val2, val3, val4], (true, false)), val3);
+        assert_eq!(mux4way16(&[val1, val2, val3, val4], (true, true)), val4);
     }
 
     #[test]

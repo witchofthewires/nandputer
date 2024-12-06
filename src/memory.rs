@@ -121,21 +121,81 @@ impl fmt::Display for RAM8 {
 
 #[derive(Copy, Clone, Debug)]
 pub struct RAM64 {
-    ram8s: [RAM8; 8],
+    blocks: [RAM8; 8],
 }
 
 impl RAM64 {
     pub fn new() -> RAM64 {
-        RAM64{ ram8s: [RAM8::new();8] }
+        RAM64{ blocks: [RAM8::new();8] }
     }
 
     pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
         let load_bits = gates::dmux8way(load, addr[5], addr[4], addr[3]);
         let mut res = [[false; 16]; 8];
         for i in 0..8 {
-            res[i] = self.ram8s[i].cycle(val, &addr, load_bits[i]);
+            res[i] = self.blocks[i].cycle(val, &addr, load_bits[i]);
         }
         gates::mux8way16(&res, (addr[5], addr[4], addr[3]))
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct RAM512 {
+    blocks: [RAM64; 8],
+}
+
+impl RAM512 {
+    pub fn new() -> RAM512 {
+        RAM512{ blocks: [RAM64::new();8] }
+    }
+
+    pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+        let load_bits = gates::dmux8way(load, addr[8], addr[7], addr[6]);
+        let mut res = [[false; 16]; 8];
+        for i in 0..8 {
+            res[i] = self.blocks[i].cycle(val, &addr, load_bits[i]);
+        }
+        gates::mux8way16(&res, (addr[8], addr[7], addr[6]))
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct RAM4096 {
+    blocks: [RAM512; 8],
+}
+
+impl RAM4096 {
+    pub fn new() -> RAM4096 {
+        RAM4096{ blocks: [RAM512::new();8] }
+    }
+
+    pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+        let load_bits = gates::dmux8way(load, addr[11], addr[10], addr[9]);
+        let mut res = [[false; 16]; 8];
+        for i in 0..8 {
+            res[i] = self.blocks[i].cycle(val, &addr, load_bits[i]);
+        }
+        gates::mux8way16(&res, (addr[11], addr[10], addr[9]))
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct RAM16384 {
+    blocks: [RAM4096; 4],
+}
+
+impl RAM16384 {
+    pub fn new() -> RAM16384 {
+        RAM16384{ blocks: [RAM4096::new();4] }
+    }
+
+    pub fn cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
+        let load_bits = gates::dmux4way(load, addr[13], addr[12]);
+        let mut res = [[false; 16]; 4];
+        for i in 0..4 {
+            res[i] = self.blocks[i].cycle(val, &addr, load_bits[i]);
+        }
+        gates::mux4way16(&res, (addr[13], addr[12]))
     }
 }
 
@@ -216,30 +276,116 @@ mod tests {
 
     #[test]
     fn test_ram64_works() {
+        let size: u16 = 64;
         let mut ram = RAM64::new();
-        let input = utils::bytes_to_boollist(&[0xde, 0xad]);
         let zeros = utils::bytes_to_boollist(&[0,0]);
-        let addr = 7;
-        let mut addr_bits = utils::bytes_to_boollist(&[0,addr]);
-        addr_bits.reverse();
 
-        for i in 0..64 {
-            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i]), &utils::gen_memaddr(i.into()), false);
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(i), false);
             dbg!(i);
             assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
         }
-        for i in 0..64 {
-            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i]), &utils::gen_memaddr(i.into()), true);
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(i), true);
             dbg!(i);
             assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
         }
-        for i in 0..64 {
+        for i in 0..size {
             let reading = ram.cycle(&zeros, &utils::gen_memaddr(i), true);
             dbg!(i);
             assert_eq!(reading, utils::bytes_to_boollist(&[0,i as u8]));
         }
-        for i in 0..64 {
+        for i in 0..size {
             let reading = ram.cycle(&zeros, &utils::gen_memaddr(i), false);
+            dbg!(i);
+            assert_eq!(reading, zeros);
+        }
+    }
+
+    #[test]
+    fn test_ram512_works() {
+        let size: u16 = 8;
+        let mut ram = RAM512::new();
+        let addr1 = 137;
+        let zeros = utils::bytes_to_boollist(&[0,0]);
+
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(addr1-(size/2)+i), false);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(addr1-(size/2)+i), true);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(addr1-(size/2)+i), true);
+            dbg!(i);
+            assert_eq!(reading, utils::bytes_to_boollist(&[0,i as u8]));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(addr1-(size/2)+i), false);
+            dbg!(i);
+            assert_eq!(reading, zeros);
+        }
+    }
+
+    #[test]
+    fn test_ram4096_works() {
+        let size: u16 = 8;
+        let mut ram = RAM4096::new();
+        let addr1 = 3913;
+        let zeros = utils::bytes_to_boollist(&[0,0]);
+
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(addr1-(size/2)+i), false);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(addr1-(size/2)+i), true);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(addr1-(size/2)+i), true);
+            dbg!(i);
+            assert_eq!(reading, utils::bytes_to_boollist(&[0,i as u8]));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(addr1-(size/2)+i), false);
+            dbg!(i);
+            assert_eq!(reading, zeros);
+        }
+    }
+
+    // TODO this test is 8x slower than test_ram4096_works
+    // figure out why and you could probably drastically improve perf of rams
+    #[test]
+    fn test_ram16384_works() {
+        let size: u16 = 4;
+        let mut ram = RAM16384::new();
+        let addr1 = 12130;
+        let zeros = utils::bytes_to_boollist(&[0,0]);
+
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(i+addr1-(size/2)+size), false);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&utils::bytes_to_boollist(&[0,i as u8]), &utils::gen_memaddr(i+addr1-(size/2)+size), true);
+            dbg!(i);
+            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(i+addr1-(size/2)+size), true);
+            dbg!(i);
+            assert_eq!(reading, utils::bytes_to_boollist(&[0,i as u8]));
+        }
+        for i in 0..size {
+            let reading = ram.cycle(&zeros, &utils::gen_memaddr(i+addr1-(size/2)+size), false);
             dbg!(i);
             assert_eq!(reading, zeros);
         }
