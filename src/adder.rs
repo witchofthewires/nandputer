@@ -113,19 +113,13 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 /// 0010011,b010,SLTI, 0010x
 /// 0010011,b011,SLTIU,0011x
 pub fn riscv_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &RISCvCtrl) -> [bool; 16] {
-    let rs1: [bool; 16] = *val1;
-    let mut rs2: [bool; 16] = *val2;
-    if ctrl.pn { rs2 = inc16(&gates::not16(&rs2)); }
-    
-    dbg!(rs1, rs2, ctrl.ir, ctrl.al, ctrl.c, ctrl.d, ctrl.pn);
-    let logic_res = match (ctrl.c, ctrl.d) {
-        (false,false) => gates::xor16(&rs1, &rs2),
-        (true,false)  => gates::or16(&rs1,&rs2),
-        (true,true)   => gates::and16(&rs1, &rs2),
-        _             => [false; 16]
-    };
-
-	gates::mux16(&add16(&rs1, &rs2), &logic_res, ctrl.al)
+    let rs2 = gates::mux16(val2, &inc16(&gates::not16(val2)), ctrl.pn);
+    let logic_res = gates::mux4way16(&[gates::xor16(&val1, &rs2), 
+                                                        [false;16], 
+                                                        gates::or16(&val1, &rs2), 
+                                                        gates::and16(&val1, &rs2)],
+                                                  (ctrl.c, ctrl.d));
+	gates::mux16(&add16(&val1, &rs2), &logic_res, ctrl.al)
 }
 
 /// Hack_ALU - ALU as specified by nand2tetris
