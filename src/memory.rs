@@ -243,18 +243,5 @@ mod tests {
             dbg!(i);
             assert_eq!(reading, zeros);
         }
-        /* 
-        ram.cycle(&input, &addr_bits, true);
-        for i in 0..64 {
-            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
-            if i == addr.into() { assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&input)); }
-            else { assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros)); }
-        }
-        ram.cycle(&zeros, &addr_bits, true);
-        for i in 0..64 {
-            let reading = ram.cycle(&input, &utils::gen_memaddr(i), false);
-            let reading = ram.cycle(&input, &addr_bits, false);
-            assert_eq!(utils::boollist_to_bytes(&reading), utils::boollist_to_bytes(&zeros));
-        }*/
     }
 }
