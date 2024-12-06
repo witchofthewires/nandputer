@@ -1,5 +1,7 @@
 use std::iter;
 
+use gates::mux4way16;
+
 use crate::*;
 
 struct HackCtrl {
@@ -14,6 +16,21 @@ struct HackCtrl {
 impl HackCtrl {
     fn new(zx: bool, nx: bool, zy: bool, ny: bool, f: bool, no: bool) -> HackCtrl {
         HackCtrl{zx, nx, zy, ny, f, no}
+    }
+}
+
+
+struct RISCvCtrl {
+    ir: bool,   // R-Type 1, I-Type 0
+    al: bool,   // Logic  1, Arith  0
+    c: bool, 
+    d: bool,
+    pn:  bool,  // -Y 1, Y0 0
+}
+
+impl RISCvCtrl {
+    fn new(ir: bool, al: bool, c: bool, d: bool, pn: bool) -> RISCvCtrl {
+        RISCvCtrl{ ir, al, c, d, pn }
     }
 }
 
@@ -75,6 +92,40 @@ fn add16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
 fn inc16(val: &[bool; 16]) -> [bool; 16] {
     let one = utils::bytes_to_boollist(&[0,1]);
     add16(&val, &one)
+}
+
+/// RISCvALU - ALU core for RISC V CPU
+/// 
+/// opcode,func3,func7,inst,RISCvCtrl 
+/// 0110011,b001,0x00,SLL,10010
+/// 0110011,b101,0x20,SRL,11011
+/// 0110011,b101,0x00,SRA,11010
+/// 0110011,b010,0x00,SLT,10100
+/// 0110011,b011,0x00,SLTU,10110
+///
+/// 0010011,b000,ADDI,0000x
+/// 0010011,b100,XORI,0100x
+/// 0010011,b110,ORI ,0110x
+/// 0010011,b111,ANDI,0111x
+/// 0010011,b001,0x00,SLLI,00010
+/// 0010011,b101,0x00,SRLI,01010
+/// 0010011,b101,0x20,SRAI,01011
+/// 0010011,b010,SLTI, 0010x
+/// 0010011,b011,SLTIU,0011x
+pub fn riscv_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &RISCvCtrl) -> [bool; 16] {
+    let rs1: [bool; 16] = *val1;
+    let mut rs2: [bool; 16] = *val2;
+    if ctrl.pn { rs2 = inc16(&gates::not16(&rs2)); }
+    
+    dbg!(rs1, rs2, ctrl.ir, ctrl.al, ctrl.c, ctrl.d, ctrl.pn);
+    let logic_res = match (ctrl.c, ctrl.d) {
+        (false,false) => gates::xor16(&rs1, &rs2),
+        (true,false)  => gates::or16(&rs1,&rs2),
+        (true,true)   => gates::and16(&rs1, &rs2),
+        _             => [false; 16]
+    };
+
+	gates::mux16(&add16(&rs1, &rs2), &logic_res, ctrl.al)
 }
 
 /// Hack_ALU - ALU as specified by nand2tetris
@@ -166,6 +217,41 @@ mod tests {
         let val2 = [0,13];
 
         assert_eq!(inc16(&bytes_to_boollist(&val1)), bytes_to_boollist(&val2));
+    }
+
+    #[test]
+    fn test_riscv_alu_works() {
+        let val1 = bytes_to_boollist(&[00,12]);
+        let val2 = bytes_to_boollist(&[00,13]);
+        let sum = bytes_to_boollist(&[00,25]);
+        let zero = bytes_to_boollist(&[00,00]);
+        let one =  bytes_to_boollist(&[00,1]);
+        let neg_one = gates::not16(&zero);
+
+        // 10000 - ADD
+        let ctrl = RISCvCtrl::new(true, false, false, false, false);
+        let out = riscv_alu(&val1, &val2, &ctrl);
+        assert_eq!(utils::boollist_to_bytes(&out), utils::boollist_to_bytes(&sum));
+
+        // 10001 - SUB
+        let ctrl = RISCvCtrl::new(true, false, false, false, true);
+        let out = riscv_alu(&val1, &val2, &ctrl);
+        assert_eq!(utils::boollist_to_bytes(&out), utils::boollist_to_bytes(&neg_one));
+
+        // 11000 - XOR
+        let ctrl = RISCvCtrl::new(true, true, false, false, false);
+        let out = riscv_alu(&val1, &val2, &ctrl);
+        assert_eq!(utils::boollist_to_bytes(&out), utils::boollist_to_bytes(&one));
+
+        // 11100 - OR
+        let ctrl = RISCvCtrl::new(true, true, true, false, false);
+        let out = riscv_alu(&val1, &val2, &ctrl);
+        assert_eq!(utils::boollist_to_bytes(&out), utils::boollist_to_bytes(&val2));
+
+        // 11110 - AND
+        let ctrl = RISCvCtrl::new(true, true, true, true, false);
+        let out = riscv_alu(&val1, &val2, &ctrl);
+        assert_eq!(utils::boollist_to_bytes(&out), utils::boollist_to_bytes(&val1));
     }
 
     #[test]

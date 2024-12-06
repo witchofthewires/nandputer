@@ -53,6 +53,14 @@ pub fn xor(val1: bool, val2: bool) -> bool {
     and(or(val1, val2), nand(val1, val2))
 }
 
+pub fn xor16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] { 
+    let mut res = [false; 16];
+    for i in 0..16 {
+        res[i] = xor(val1[i], val2[i]);
+    }
+    res
+}
+
 pub fn mux(val1: bool, val2: bool, sel: bool) -> bool {
     or(and(val1, not(sel)), and(val2, sel))    
 }
