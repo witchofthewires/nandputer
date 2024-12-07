@@ -13,6 +13,21 @@ pub fn bytes_to_boollist(bytes: &[u8]) -> [bool; 16] {
     boollist
 }
 
+pub fn bytes_to_boollist32(bytes: &[u8]) -> [bool; 32] {
+    let mut boollist = [false; 32];
+    let mut total = 0;
+    for byte in bytes {
+        for i in 0..8 {
+            let val = (byte >> (7-i)) & 1;
+            if val == 1 { boollist[31 - total] = true; }
+            else { boollist[31 - total] = false; }
+            total += 1;
+        }
+        if total == 32 { break } // cap at 32 bits for now
+    }
+    boollist
+}
+
 pub fn boollist_to_bytes(boollist: &[bool]) -> [u8; 2] {
     let base: u8 = 2;
     let mut val1: u8 = 0;
@@ -24,6 +39,27 @@ pub fn boollist_to_bytes(boollist: &[bool]) -> [u8; 2] {
         if boollist[i] { val2 += base.pow((i-8).try_into().expect("Failed to parse second byte from boollist")); }
     }
     [val2, val1] // little endian 
+}
+
+pub fn boollist_to_bytes32(boollist: &[bool]) -> [u8; 4] {
+    let base: u8 = 2;
+    let mut val1: u8 = 0;
+    let mut val2: u8 = 0;
+    let mut val3: u8 = 0;
+    let mut val4: u8 = 0;
+    for i in 0..8 {
+        if boollist[i] { val1 += base.pow(i.try_into().expect("Failed to parse first byte from boollist")); }
+    }
+    for i in 8..16 {
+        if boollist[i] { val2 += base.pow((i-8).try_into().expect("Failed to parse second byte from boollist")); }
+    }
+    for i in 16..24 {
+        if boollist[i] { val3 += base.pow((i-16).try_into().expect("Failed to parse 3rd byte from boollist")); }
+    }
+    for i in 24..32 {
+        if boollist[i] { val4 += base.pow((i-24).try_into().expect("Failed to parse 4th byte from boollist")); }
+    }
+    [val4, val3, val2, val1] // little endian 
 }
 
 pub fn gen_memaddr(val: u16) -> [bool; 16] {
@@ -65,6 +101,22 @@ mod tests {
         let val_bytes = [0x5d, 0x1b];
         assert_eq!(boollist_to_bytes(&val), val_bytes);
     }
+
+    #[test]
+    fn test_bytes_to_boollist32_works() {
+        let mut val = [false, false, false, true, false, false, true, false, false, false, true, true, false, true, false, false, false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        val.reverse();
+        let val_bytes = [0x12, 0x34, 0x5d, 0x1b];
+        assert_eq!(bytes_to_boollist32(&val_bytes), val);
+    }
+
+    #[test]
+    fn test_boollist_to_bytes32_works() {
+        let mut val = [false, false, false, true, false, false, true, false, false, false, true, true, false, true, false, false, false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        val.reverse(); // little endian
+        let val_bytes = [0x12, 0x34, 0x5d, 0x1b];
+        assert_eq!(boollist_to_bytes32(&val), val_bytes);
+    }    
 
     #[test]
     fn test_bytes_to_boollist_works() {

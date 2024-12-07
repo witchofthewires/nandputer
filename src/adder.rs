@@ -112,6 +112,8 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 /// 0010011,b101,0x20,SRAI,01011
 /// 0010011,b010,SLTI, 0010x
 /// 0010011,b011,SLTIU,0011x
+// TODO make 32 bit
+// TODO implement shift operations
 pub fn riscv_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &RISCvCtrl) -> [bool; 16] {
     let rs2 = gates::mux16(val2, &inc16(&gates::not16(val2)), ctrl.pn);
     let logic_res = gates::mux4way16(&[gates::xor16(&val1, &rs2), 

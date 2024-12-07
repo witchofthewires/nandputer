@@ -17,6 +17,14 @@ pub fn not16(val: &[bool; 16]) -> [bool; 16] {
     res
 }
 
+pub fn not32(val: &[bool; 32]) -> [bool; 32] {
+    let mut res = [false; 32];
+    for i in 0..32 {
+        res[i] = not(val[i]);
+    }
+    res
+}
+
 pub fn and(val1: bool, val2: bool) -> bool {
     not(nand(val1, val2))
 }
@@ -29,6 +37,14 @@ pub fn and16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
     res
 }
 
+pub fn and32(val1: &[bool; 32], val2: &[bool; 32]) -> [bool; 32] { 
+    let mut res = [false; 32];
+    for i in 0..32 {
+        res[i] = and(val1[i], val2[i]);
+    }
+    res
+}
+
 pub fn or(val1: bool, val2: bool) -> bool {
     nand(not(val1), not(val2))
 }
@@ -36,6 +52,14 @@ pub fn or(val1: bool, val2: bool) -> bool {
 pub fn or16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] { 
     let mut res = [false; 16];
     for i in 0..16 {
+        res[i] = or(val1[i], val2[i]);
+    }
+    res
+}
+
+pub fn or32(val1: &[bool; 32], val2: &[bool; 32]) -> [bool; 32] { 
+    let mut res = [false; 32];
+    for i in 0..32 {
         res[i] = or(val1[i], val2[i]);
     }
     res
@@ -56,6 +80,14 @@ pub fn xor(val1: bool, val2: bool) -> bool {
 pub fn xor16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] { 
     let mut res = [false; 16];
     for i in 0..16 {
+        res[i] = xor(val1[i], val2[i]);
+    }
+    res
+}
+
+pub fn xor32(val1: &[bool; 32], val2: &[bool; 32]) -> [bool; 32] { 
+    let mut res = [false; 32];
+    for i in 0..32 {
         res[i] = xor(val1[i], val2[i]);
     }
     res
@@ -82,6 +114,26 @@ pub fn mux4way16(vals: &[[bool; 16]; 4], sel: (bool, bool)) -> [bool; 16] {
 pub fn mux8way16(vals: &[[bool; 16]; 8], sel: (bool, bool, bool)) -> [bool; 16] { 
     mux16(&mux4way16(&[vals[0], vals[1], vals[2], vals[3]], (sel.1, sel.2)), 
         &mux4way16(&[vals[4], vals[5], vals[6], vals[7]], (sel.1, sel.2)), 
+        sel.0)
+}
+
+pub fn mux32(val1: &[bool; 32], val2: &[bool; 32], sel: bool) -> [bool; 32] { 
+    let mut res = [false; 32];
+    for i in 0..32 {
+        res[i] = mux(val1[i], val2[i], sel);
+    }
+    res
+}
+
+pub fn mux4way32(vals: &[[bool; 32]; 4], sel: (bool, bool)) -> [bool; 32] { 
+    mux32(&mux32(&vals[0], &vals[1], sel.1), 
+        &mux32(&vals[2], &vals[3], sel.1), 
+        sel.0)
+}
+
+pub fn mux8way32(vals: &[[bool; 32]; 8], sel: (bool, bool, bool)) -> [bool; 32] { 
+    mux32(&mux4way32(&[vals[0], vals[1], vals[2], vals[3]], (sel.1, sel.2)), 
+        &mux4way32(&[vals[4], vals[5], vals[6], vals[7]], (sel.1, sel.2)), 
         sel.0)
 }
 
@@ -162,6 +214,22 @@ mod tests {
     }
 
     #[test]
+    fn test_xor16_works() {
+        let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
+        let val2 = [false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
+        let res =  [false, true, true, false, true, false, true, false, true, false, false, false, false, true, false, true];
+        assert_eq!(xor16(&val1, &val2), res);
+    }
+
+    #[test]
+    fn test_xor32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x55,0xAA,0x55,0xAA]);
+        let val2 = utils::bytes_to_boollist32(&[0xAA,0x56,0xAA,0x55]);
+        let res = utils::bytes_to_boollist32(&[0xFF, 0xFC, 0xFF, 0xFF]);
+        assert_eq!(utils::boollist_to_bytes32(&xor32(&val1, &val2)), utils::boollist_to_bytes32(&res));
+    }
+
+    #[test]
     fn test_mux_works() {
         assert_eq!(mux(false, false, false), false);
         assert_eq!(mux(false, true, false), false);
@@ -222,11 +290,26 @@ mod tests {
     }
 
     #[test]
+    fn test_not32_works() {
+        let val = utils::bytes_to_boollist32(&[0x55,0xAA,0x55,0xAA]);
+        let res = utils::bytes_to_boollist32(&[0xAA, 0x55, 0xAA, 0x55]);
+        assert_eq!(not32(&val), res);
+    }
+
+    #[test]
     fn test_and16_works() {
         let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
         let val2 = [false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
         let res =  [false, false, false, true, false, true, false, true, false, false, false, true, true, false, true, false];
         assert_eq!(and16(&val1, &val2), res);
+    }
+
+    #[test]
+    fn test_and32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x55,0xAA,0x55,0xAA]);
+        let val2 = utils::bytes_to_boollist32(&[0xAB, 0x55, 0xAA, 0x55]);
+        let res = utils::bytes_to_boollist32(&[1,0,0,0]);
+        assert_eq!(utils::boollist_to_bytes32(&and32(&val1, &val2)), utils::boollist_to_bytes32(&res));
     }
 
     #[test]
@@ -238,11 +321,28 @@ mod tests {
     }
 
     #[test]
+    fn test_or32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x55,0xAA,0x55,0xAA]);
+        let val2 = utils::bytes_to_boollist32(&[0xAA,0x55,0xAA,0x55]);
+        let res = utils::bytes_to_boollist32(&[0xFF; 4]);
+        assert_eq!(utils::boollist_to_bytes32(&or32(&val1, &val2)), utils::boollist_to_bytes32(&res));
+    }
+
+
+    #[test]
     fn test_mux16_works() {
         let val1 = [false, true, false, true, true, true, false, true, false, false, false, true, true, false, true, true];
         let val2 =[false, false, true, true, false, true, true, true, true, false, false, true, true, true, true, false];
         assert_eq!(mux16(&val1, &val2, false), val1);
         assert_eq!(mux16(&val1, &val2, true), val2);
+    }
+
+    #[test]
+    fn test_mux32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x55,0xAA,0x55,0xAA]);
+        let val2 = utils::bytes_to_boollist32(&[0xAA,0x55,0xAA,0x55]);
+        assert_eq!(mux32(&val1, &val2, false), val1);
+        assert_eq!(mux32(&val1, &val2, true), val2);
     }
 
     #[test]
@@ -256,6 +356,19 @@ mod tests {
         assert_eq!(mux4way16(&[val1, val2, val3, val4], (false, true)), val2);
         assert_eq!(mux4way16(&[val1, val2, val3, val4], (true, false)), val3);
         assert_eq!(mux4way16(&[val1, val2, val3, val4], (true, true)), val4);
+    }
+
+    #[test]
+    fn test_mux4way32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x12, 0x34, 0x5d, 0x1b]);
+        let val2 = utils::bytes_to_boollist32(&[0x56, 0x78, 0x9e, 0x23]);
+        let val3 = utils::bytes_to_boollist32(&[0x9f, 0x12, 0x93, 0x66]);
+        let val4 = utils::bytes_to_boollist32(&[0x54, 0xd3, 0x49, 0x9a]);
+
+        assert_eq!(mux4way32(&[val1, val2, val3, val4], (false, false)), val1);
+        assert_eq!(mux4way32(&[val1, val2, val3, val4], (false, true)), val2);
+        assert_eq!(mux4way32(&[val1, val2, val3, val4], (true, false)), val3);
+        assert_eq!(mux4way32(&[val1, val2, val3, val4], (true, true)), val4);
     }
 
     #[test]
@@ -278,6 +391,28 @@ mod tests {
         assert_eq!(mux8way16(&vals, (true, false, true)), vals[5]);
         assert_eq!(mux8way16(&vals, (true, true, false)), vals[6]);
         assert_eq!(mux8way16(&vals, (true, true, true)), vals[7]);
+    }
+
+    #[test]
+    fn test_mux8way32_works() {
+        let val1 = utils::bytes_to_boollist32(&[0x12, 0x34, 0x5d, 0x1b]);
+        let val2 = utils::bytes_to_boollist32(&[0x56, 0x78, 0x37, 0x9e]);
+        let val3 = utils::bytes_to_boollist32(&[0x9a, 0xbc, 0x9f, 0x66]);
+        let val4 = utils::bytes_to_boollist32(&[0xde, 0xef, 0x54, 0xd3]);
+        let val5 = utils::bytes_to_boollist32(&[0x12, 0x34, 0x12, 0x34]);
+        let val6 = utils::bytes_to_boollist32(&[0x56, 0x78, 0x56, 0x78]);
+        let val7 = utils::bytes_to_boollist32(&[0x90, 0xab, 0x92, 0x19]);
+        let val8 = utils::bytes_to_boollist32(&[0xcd, 0xef, 0x91, 0x21]);
+        let vals = [val1, val2, val3, val4, val5, val6, val7, val8];
+
+        assert_eq!(mux8way32(&vals, (false, false, false)), vals[0]);
+        assert_eq!(mux8way32(&vals, (false, false, true)), vals[1]);
+        assert_eq!(mux8way32(&vals, (false, true, false)), vals[2]);
+        assert_eq!(mux8way32(&vals, (false, true, true)), vals[3]);
+        assert_eq!(mux8way32(&vals, (true, false, false)), vals[4]);
+        assert_eq!(mux8way32(&vals, (true, false, true)), vals[5]);
+        assert_eq!(mux8way32(&vals, (true, true, false)), vals[6]);
+        assert_eq!(mux8way32(&vals, (true, true, true)), vals[7]);
     }
  
     #[test]
