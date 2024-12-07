@@ -70,6 +70,10 @@ pub fn gen_memaddr(val: u16) -> [bool; 16] {
     addr_bits
 }
 
+pub fn split_u16(input: u16) -> [u8; 2] {
+    return [(input >> 8) as u8, (input & 0xFF) as u8]
+}
+
 // TODO this should be factored out
 pub fn bytes_to_boolvec(bytes: &[u8]) -> Vec<bool> {
     let mut boolvec = Vec::new();
@@ -131,5 +135,10 @@ mod tests {
         let mut output = [false; 16];
         output[10] = true;
         assert_eq!(gen_memaddr(1024), output);
+    }
+   
+    #[test]
+    fn test_split_u16_works() {
+        assert_eq!(split_u16(0xdead), [0xde, 0xad]);
     }
 }
