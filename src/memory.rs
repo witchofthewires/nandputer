@@ -93,21 +93,36 @@ impl fmt::Display for Register {
 }
 
 #[derive(Copy, Clone, Debug)]
+pub struct Register32 {
+    bits: [BitRegister; 32],
+}
+
+impl Register32 {
+    fn new() -> Register32 {
+        Register32 { bits: [BitRegister::new(); 32] }
+    }
+
+    fn clk_cycle(&mut self, val: &[bool], load: bool) -> [bool; 32] {
+        let mut res = [false; 32];
+        for i in 0..32 {
+            res[i] = self.bits[i].clk_cycle(val[i], load);
+        }
+        res
+    }
+}
+
+impl fmt::Display for Register32 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // need to reverse output to big-endian for human viewing
+        for bit in self.bits.into_iter().rev() { write!(f, "{}", bit)?; }
+        Ok(())
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct RAM8 {
     words: [Register; 8],
     index: usize,
-}
-
-impl Iterator for RAM8 {
-
-    type Item = Register;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index == 8 { return None };
-        let res = self.words[self.index];
-        self.index += 1;
-        Some(res)
-    }
 }
 
 impl RAM8 {
@@ -125,6 +140,17 @@ impl RAM8 {
     }
 }
 
+impl Iterator for RAM8 {
+    type Item = Register;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == 8 { return None };
+        let res = self.words[self.index];
+        self.index += 1;
+        Some(res)
+    }
+}
+
 impl fmt::Display for RAM8 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for i in 0..8 { write!(f, "{}: {}\n", i, self.words[i])?; }
@@ -135,11 +161,12 @@ impl fmt::Display for RAM8 {
 #[derive(Copy, Clone, Debug)]
 pub struct RAM64 {
     blocks: [RAM8; 8],
+    index: usize,
 }
 
 impl RAM64 {
     pub fn new() -> RAM64 {
-        RAM64{ blocks: [RAM8::new();8] }
+        RAM64{ blocks: [RAM8::new();8], index: 0 }
     }
 
     pub fn clk_cycle(&mut self, val: &[bool], addr: &[bool], load: bool) -> [bool; 16] {
@@ -149,6 +176,22 @@ impl RAM64 {
             res[i] = self.blocks[i].clk_cycle(val, &addr, load_bits[i]);
         }
         gates::mux8way16(&res, (addr[5], addr[4], addr[3]))
+    }
+}
+
+impl Iterator for RAM64 {
+    type Item = Register;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == 8 { return None };
+        let res = match self.blocks[self.index].next() {
+            Some(val) => Some(val),
+            None => {
+                self.index += 1;
+                self.next()
+            }
+        };
+        res
     }
 }
 
