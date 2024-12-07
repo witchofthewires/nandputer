@@ -1,4 +1,4 @@
-use std::{env, io};
+use std::{env, io, process, iter};
 use std::io::Write;
 mod gates;
 mod adder; 
@@ -23,16 +23,19 @@ fn main() {
 
         //let addr: u8 = 3;
         match input {
-            "m" => println!("{}", mem),
+            "m" => {
+                        for (i, word) in iter::zip(0..8, mem) { println!("{i}: {word}"); }
+            }
             "w" => {
                         //val += 1;
                         for i in 0..8 {
                             let in_bits = utils::bytes_to_boollist(&[0,i]);
                             let addr_bits = utils::bytes_to_boollist(&[0,i]);
-                            mem.cycle(&in_bits, &addr_bits, true);
+                            mem.clk_cycle(&in_bits, &addr_bits, true);
                             println!("Wrote {} to {}", i, i)
                         }
-            }
+                    }
+            "q" => { println!("Terminating..."); process::exit(0); }
             _   => println!("Invalid input"),
         }
     }
