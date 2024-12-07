@@ -24,20 +24,20 @@ fn main() {
         //let addr: u8 = 3;
         match input_switch {
             "m" => {
-                        for (i, word) in iter::zip(0..64, mem) { 
-                            if i % 4 == 0 { print!("\n{i}: "); }
-                            print!("\t{word}");
-                        }
-                        println!();
+                for (i, word) in iter::zip(0..64, mem) { 
+                    if i % 4 == 0 { print!("\n{:02x}: ", i); }
+                    print!("\t{word}");
+                }
+                println!();
             }
             "w" => {
-                        print!("addr# ");
-                        io::stdout().flush().unwrap();
-                        let mut input = String::new();
-                        io::stdin()
-                            .read_line(&mut input)
-                            .expect("Failed to read addr");
-                        let addr: u16 = input.trim().parse().expect("Invalid addr input");
+                print!("addr# ");
+                io::stdout().flush().unwrap();
+                let mut input = String::new();
+                io::stdin()
+                    .read_line(&mut input)
+                    .expect("Failed to read addr");
+                let addr: u16 = input.trim().parse().expect("Invalid addr input");
 
                         print!("data# ");
                         io::stdout().flush().unwrap();

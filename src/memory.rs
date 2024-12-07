@@ -37,6 +37,10 @@ impl BitRegister {
         BitRegister{ dff: DFF::new() }
     }
 
+    fn read(&self) -> bool {
+        self.dff.read()
+    }
+
     fn clk_cycle(&mut self, val: bool, load: bool) -> bool {
         self.dff.clk_cycle(gates::mux(self.dff.read(), val, load))
     }
@@ -86,8 +90,8 @@ impl Register {
 
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // need to reverse output to big-endian for human viewing
-        for bit in self.bits.into_iter().rev() { write!(f, "{}", bit)?; }
+        let reading = self.bits.map(|x| x.read());
+        for byte in utils::boollist_to_bytes(&reading) { write!(f, "{:02x}", byte)?; }
         Ok(())
     }
 }
@@ -113,8 +117,8 @@ impl Register32 {
 
 impl fmt::Display for Register32 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // need to reverse output to big-endian for human viewing
-        for bit in self.bits.into_iter().rev() { write!(f, "{}", bit)?; }
+        let reading = self.bits.map(|x| x.read());
+        for byte in utils::boollist_to_bytes(&reading) { write!(f, "{:02x}", byte)?; }
         Ok(())
     }
 }
