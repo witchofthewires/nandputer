@@ -82,6 +82,24 @@ fn add16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
     res
 }
 
+// carry-ripple adder
+// TODO replace with carry-lookahead
+/// Add32 - Add two 32-bit values
+/// Inputs: val1[32], val2[32]
+/// Outputs: res[32]
+/// Function: res=val1+val2
+/// 
+/// Integer 2’s complement addition.
+/// Overflow is neither detected nor handled.
+fn add32(val1: &[bool; 32], val2: &[bool; 32]) -> [bool; 32] {
+    let mut res: [bool; 32] = [false; 32];
+    let mut carry_bus: [bool; 33] = [false; 33]; // prevent bus overflow on final bit
+    for i in 0..32 {
+        (res[i], carry_bus[i+1]) = full_adder(val1[i], val2[i], carry_bus[i]);
+    }
+    res
+}
+
 /// Inc16 - Increment value by 1
 /// Inputs: val[16]
 /// Outputs: res[16]
@@ -92,6 +110,18 @@ fn add16(val1: &[bool; 16], val2: &[bool; 16]) -> [bool; 16] {
 fn inc16(val: &[bool; 16]) -> [bool; 16] {
     let one = utils::bytes_to_boollist(&[0,1]);
     add16(&val, &one)
+}
+
+/// Inc32 - Increment value by 1
+/// Inputs: val[32]
+/// Outputs: res[32]
+/// Function: res=val+1 
+/// 
+/// Integer 2’s complement addition.
+/// Overflow is neither detected nor handled.
+fn inc32(val: &[bool; 32]) -> [bool; 32] {
+    let one = utils::bytes_to_boollist32(&[0,0,0,1]);
+    add32(&val, &one)
 }
 
 /// RISCvALU - ALU core for RISC V CPU
@@ -112,16 +142,15 @@ fn inc16(val: &[bool; 16]) -> [bool; 16] {
 /// 0010011,b101,0x20,SRAI,01011
 /// 0010011,b010,SLTI, 0010x
 /// 0010011,b011,SLTIU,0011x
-// TODO make 32 bit
 // TODO implement shift operations
-pub fn riscv_alu(val1: &[bool; 16], val2: &[bool; 16], ctrl: &RISCvCtrl) -> [bool; 16] {
-    let rs2 = gates::mux16(val2, &inc16(&gates::not16(val2)), ctrl.pn);
-    let logic_res = gates::mux4way16(&[gates::xor16(&val1, &rs2), 
-                                                        [false;16], 
-                                                        gates::or16(&val1, &rs2), 
-                                                        gates::and16(&val1, &rs2)],
+pub fn riscv_alu(val1: &[bool; 32], val2: &[bool; 32], ctrl: &RISCvCtrl) -> [bool; 32] {
+    let rs2 = gates::mux32(val2, &inc32(&gates::not32(val2)), ctrl.pn);
+    let logic_res = gates::mux4way32(&[gates::xor32(&val1, &rs2), 
+                                                        [false;32], 
+                                                        gates::or32(&val1, &rs2), 
+                                                        gates::and32(&val1, &rs2)],
                                                   (ctrl.c, ctrl.d));
-	gates::mux16(&add16(&val1, &rs2), &logic_res, ctrl.al)
+	gates::mux32(&add32(&val1, &rs2), &logic_res, ctrl.al)
 }
 
 /// Hack_ALU - ALU as specified by nand2tetris
@@ -216,13 +245,30 @@ mod tests {
     }
 
     #[test]
+    fn test_add32_works() {
+        let val1 = [0x55,0xAA,00,12];
+        let val2 = [0xAA,0x55,0,13];
+        let sum = [0xFF,0xFF,0,25];
+
+        assert_eq!(add32(&utils::bytes_to_boollist32(&val1), &utils::bytes_to_boollist32(&val2)), utils::bytes_to_boollist32(&sum));
+    }
+
+    #[test]
+    fn test_inc32_works() {
+        let val1 = [0,0,00,12];
+        let val2 = [0,0,0,13];
+
+        assert_eq!(inc32(&utils::bytes_to_boollist32(&val1)), utils::bytes_to_boollist32(&val2));
+    }
+
+    #[test]
     fn test_riscv_alu_works() {
-        let val1 = bytes_to_boollist(&[00,12]);
-        let val2 = bytes_to_boollist(&[00,13]);
-        let sum = bytes_to_boollist(&[00,25]);
-        let zero = bytes_to_boollist(&[00,00]);
-        let one =  bytes_to_boollist(&[00,1]);
-        let neg_one = gates::not16(&zero);
+        let val1 = utils::bytes_to_boollist32(&[00,00,00,12]);
+        let val2 = utils::bytes_to_boollist32(&[00,00,00,13]);
+        let sum = utils::bytes_to_boollist32(&[00,00,00,25]);
+        let zero = utils::bytes_to_boollist32(&[00,00,00,00]);
+        let one =  utils::bytes_to_boollist32(&[00,00,00,1]);
+        let neg_one = gates::not32(&zero);
 
         // 10000 - ADD
         let ctrl = RISCvCtrl::new(true, false, false, false, false);
